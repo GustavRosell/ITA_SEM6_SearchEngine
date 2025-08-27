@@ -61,17 +61,23 @@ namespace ConsoleSearch
             // Step 2: Find which documents contain these words and which specific words are in each
             var docsWithWords = mDatabase.GetDocsWithMatchingWords(matchingWords);
 
-            // Step 3: Get the full details for the documents we found
-            var docIds = new List<int>(docsWithWords.Keys);
-            var docDetails = mDatabase.GetDocDetails(docIds);
+            // Step 3: Apply the result limit BEFORE fetching full details
+            var limitedDocIds = docsWithWords.Keys.AsEnumerable();
+            if (Config.ResultLimit.HasValue)
+            {
+                limitedDocIds = limitedDocIds.Take(Config.ResultLimit.Value);
+            }
+            var finalDocIds = limitedDocIds.ToList();
+
+            // Step 4: Get the full details for the limited set of documents
+            var docDetails = mDatabase.GetDocDetails(finalDocIds);
             var docDetailsMap = docDetails.ToDictionary(d => d.mId);
 
-            // Step 4: Assemble the final result
+            // Step 5: Assemble the final result
             var hits = new List<PatternDocumentHit>();
-            foreach (var entry in docsWithWords)
+            foreach (var docId in finalDocIds) // Iterate over the limited list of IDs
             {
-                int docId = entry.Key;
-                List<string> wordsInDoc = entry.Value;
+                List<string> wordsInDoc = docsWithWords[docId];
                 if (docDetailsMap.ContainsKey(docId))
                 {
                     hits.Add(new PatternDocumentHit(docDetailsMap[docId], wordsInDoc));

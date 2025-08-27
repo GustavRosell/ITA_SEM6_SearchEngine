@@ -208,10 +208,21 @@ namespace ConsoleSearch
         public List<string> GetWordsMatchingPattern(string pattern)
         {
             var res = new List<string>();
-            var sqlPattern = pattern.Replace('?', '_').Replace('*', '%');
             var command = _connection.CreateCommand();
-            command.CommandText = "SELECT name FROM word WHERE name LIKE @pattern";
-            command.Parameters.AddWithValue("@pattern", sqlPattern);
+
+            if (Config.CaseSensitive)
+            {
+                // GLOB is case-sensitive and uses * and ? as wildcards, which matches the user's input format.
+                command.CommandText = "SELECT name FROM word WHERE name GLOB @pattern";
+                command.Parameters.AddWithValue("@pattern", pattern); // Use the original pattern
+            }
+            else
+            {
+                // LIKE is case-insensitive by default. It uses % and _.
+                var sqlPattern = pattern.Replace('?', '_').Replace('*', '%');
+                command.CommandText = "SELECT name FROM word WHERE name LIKE @pattern";
+                command.Parameters.AddWithValue("@pattern", sqlPattern);
+            }
 
             using (var reader = command.ExecuteReader())
             {
