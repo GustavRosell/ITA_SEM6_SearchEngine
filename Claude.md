@@ -1,4 +1,4 @@
-# SearchEngine PoC - Project Analysis test
+# SearchEngine PoC - Project Analysis
 
 ## Project Overview
 This is a **Proof of Concept (PoC) Search Engine** for IT-Architecture semester 6 at Erhvervsakademiet Aarhus. The system is designed as an internal document search solution for organizations with 50+ employees.
