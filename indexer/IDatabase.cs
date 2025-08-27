@@ -19,5 +19,9 @@ namespace Indexer
         void InsertAllWords(Dictionary<string, int> words);
 
         void InsertAllOcc(int docId, ISet<int> wordIds);
+
+        long GetTotalOccurrences();
+
+        List<(string, int, int)> GetMostFrequentWords(int limit);
     }
 }

@@ -173,17 +173,34 @@ namespace ConsoleSearch
 
         public List<int> GetWordIds(string[] query, out List<string> outIgnored)
         {
-            if (mWords == null)
-                mWords = GetAllWords();
             var res = new List<int>();
             var ignored = new List<string>();
 
             foreach (var aWord in query)
             {
-                if (mWords.ContainsKey(aWord))
-                    res.Add(mWords[aWord]);
+                var command = _connection.CreateCommand();
+                if (Config.CaseSensitive)
+                {
+                    command.CommandText = "SELECT id FROM word WHERE name = @name";
+                    command.Parameters.AddWithValue("@name", aWord);
+                }
                 else
-                    ignored.Add(aWord);
+                {
+                    command.CommandText = "SELECT id FROM word WHERE LOWER(name) = LOWER(@name)";
+                    command.Parameters.AddWithValue("@name", aWord);
+                }
+
+                using (var reader = command.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        res.Add(reader.GetInt32(0));
+                    }
+                    else
+                    {
+                        ignored.Add(aWord);
+                    }
+                }
             }
             outIgnored = ignored;
             return res;

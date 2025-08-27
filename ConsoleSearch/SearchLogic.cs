@@ -16,7 +16,7 @@ namespace ConsoleSearch
         /* Perform search of documents containing words from query. The result will
          * contain details about amost maxAmount of documents.
          */
-        public SearchResult Search(String[] query, int maxAmount)
+        public SearchResult Search(String[] query)
         {
             List<string> ignored;
 
@@ -30,7 +30,8 @@ namespace ConsoleSearch
 
             // get ids for the first maxAmount             
             var top = new List<int>();
-            foreach (var p in docIds.GetRange(0, Math.Min(maxAmount, docIds.Count)))
+            int limit = Config.ResultLimit.HasValue ? Math.Min(Config.ResultLimit.Value, docIds.Count) : docIds.Count;
+            foreach (var p in docIds.GetRange(0, limit))
                 top.Add(p.Key);
 
             // compose the result.

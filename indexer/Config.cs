@@ -9,7 +9,7 @@ public class Config
     // All .txt files in that folder (and subfolders) will be indexed
     public static string GetFolder(string dataset)
     {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) 
         {
             return dataset.ToLower() switch
             {

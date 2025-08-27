@@ -162,6 +162,30 @@ namespace Indexer
             return res;
         }
 
+        public long GetTotalOccurrences()
+        {
+            var selectCmd = _connection.CreateCommand();
+            selectCmd.CommandText = "SELECT COUNT(*) FROM Occ";
+            return (long)selectCmd.ExecuteScalar();
+        }
+
+        public List<(string, int, int)> GetMostFrequentWords(int limit)
+        {
+            var res = new List<(string, int, int)>();
+            var selectCmd = _connection.CreateCommand();
+            selectCmd.CommandText = "SELECT w.name, w.id, COUNT(o.wordId) AS freq FROM Occ o JOIN word w ON o.wordId = w.id GROUP BY o.wordId ORDER BY freq DESC LIMIT @limit";
+            selectCmd.Parameters.AddWithValue("@limit", limit);
+
+            using (var reader = selectCmd.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    res.Add((reader.GetString(0), reader.GetInt32(1), reader.GetInt32(2)));
+                }
+            }
+            return res;
+        }
+
         public int DocumentCounts
         {
             get

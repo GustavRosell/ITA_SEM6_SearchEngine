@@ -20,16 +20,19 @@ namespace Indexer
             TimeSpan used = DateTime.Now - start;
             Console.WriteLine("DONE! used " + used.TotalMilliseconds);
 
-            var all = db.GetAllWords();
-
             Console.WriteLine($"Indexed {db.DocumentCounts} documents");
-            Console.WriteLine($"Number of different words: {all.Count}");
-            int count = 10;
-            Console.WriteLine($"The first {count} is:");
-            foreach (var p in all) {
-                Console.WriteLine("<" + p.Key + ", " + p.Value + ">");
-                count--;
-                if (count == 0) break;
+            Console.WriteLine($"Total word occurrences: {db.GetTotalOccurrences()}");
+
+            Console.WriteLine("How many of the most frequent words do you want to see?");
+            string input = Console.ReadLine();
+            if (int.TryParse(input, out int count) && count > 0)
+            {
+                var frequentWords = db.GetMostFrequentWords(count);
+                Console.WriteLine($"The top {count} most frequent words are:");
+                foreach (var p in frequentWords)
+                {
+                    Console.WriteLine($"<{p.Item1}, {p.Item2}> - {p.Item3}");
+                }
             }
         }
     }
