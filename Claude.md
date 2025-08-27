@@ -172,7 +172,19 @@ Subject: Email Subject
 - Simplicity is intentional for educational purposes
 - Focus on extending existing functionality vs. major architectural changes
 
-## Getting Started Checklist
+## Assignment Progress Tracking
+
+**📋 See `assignments.md` for detailed progress tracking in Danish**
+
+The `assignments.md` file contains:
+- All 6 assignments from the Danish documentation
+- Current status and progress for each assignment
+- Detailed steps and requirements
+- What has been completed vs. what remains
+
+**Important**: When using `/init` command in Claude Code CLI, always read both `Claude.md` and `assignments.md` for complete project context.
+
+## Getting Started Checklist (Assignment 1)
 1. Verify .NET 9.0 installation
 2. Update `Shared\Paths.cs` database path for Windows
 3. Update `indexer\Config.cs` folder path to point to test data
