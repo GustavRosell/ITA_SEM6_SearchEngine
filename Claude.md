@@ -1,4 +1,8 @@
-# SearchEngine PoC - Project Analysis test
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+# SearchEngine PoC - Project Analysis
 
 ## Project Overview
 This is a **Proof of Concept (PoC) Search Engine** for IT-Architecture semester 6 at Erhvervsakademiet Aarhus. The system is designed as an internal document search solution for organizations with 50+ employees.
@@ -18,6 +22,7 @@ This is a **Proof of Concept (PoC) Search Engine** for IT-Architecture semester 
 - **Microsoft.Data.Sqlite** NuGet package (version 8.0.1)
 
 ### Database Schema (Inverted Index)
+SQLite database with three main tables:
 ```sql
 Document: docId, title, link, date
 Word: termId, value  
@@ -32,20 +37,17 @@ Occurrence: docId, termId (many-to-many relationship)
 - **Crawler**: `Crawler.cs` - main indexing logic
 - **Database**: `DatabaseSqlite.cs` - handles database operations
 
-**Current Configuration**:
-```csharp
-// Config.cs
-public static string FOLDER = @"/Users/oleeriksen/Data/seData/medium";
+**Key Implementation Details**:
+- Only indexes `.txt` files recursively
+- Word extraction separators: `" \\\n\t\"$'!,?;.:-_**+=)([]{}<>/@&%€#"`
+- Creates inverted index: word → documents containing it
+- Platform-specific database paths via `RuntimeInformation`
 
-// Paths.cs (Shared)
-public static string DATABASE = @"/Users/oleeriksen/Data/searchDBmedium.db";
-```
-
-**Indexing Process**:
-1. Recursively crawls specified directory for `.txt` files only
-2. Extracts words using separators: `" \\\n\t\"$'!,?;.:-_**+=)([]{}<>/@&%€#"`
-3. Creates inverted index mapping words → documents containing them
-4. Outputs statistics: document count, unique words, first 10 words
+**Indexing Workflow**:
+1. Recursively crawls configured directory for `.txt` files
+2. Extracts and normalizes words using defined separators
+3. Builds inverted index in SQLite database
+4. Outputs indexing statistics
 
 ### 2. Search Engine (`ConsoleSearch` project)
 **Entry Point**: `Program.cs` → `App.cs`
@@ -53,12 +55,12 @@ public static string DATABASE = @"/Users/oleeriksen/Data/searchDBmedium.db";
 - **Database**: `DatabaseSqlite.cs` - read-only database access
 - **Models**: `SearchResult.cs`, `DocumentHit.cs`
 
-**Search Process**:
-1. Accepts multi-word queries via console input
-2. Converts words to word IDs
-3. Finds documents containing those words
-4. Ranks by score (descending), limits to top 10
-5. Shows: document path, matching terms count, missing terms, timestamp
+**Search Workflow**:
+1. Accepts multi-word queries via console
+2. Maps query terms to word IDs in database
+3. Finds intersecting documents using inverted index
+4. Calculates relevance scores and ranks results
+5. Returns top 10 results with metadata
 
 **Scoring Algorithm**: 
 ```
@@ -66,9 +68,9 @@ score = (number_of_matching_terms / total_query_terms)
 ```
 
 ### 3. Shared Library (`Shared` project)
-- **`BEDocument.cs`**: Document model (mId, mUrl, mIdxTime, mCreationTime)
-- **`Paths.cs`**: Database path configuration
-- **`IDatabase.cs`**: Database interface definition
+- **`BEDocument.cs`**: Document business entity model
+- **`Paths.cs`**: Platform-specific database path configuration
+- **`IDatabase.cs`**: Database interface (used by both indexer and search)
 
 ## Test Data Structure
 
@@ -110,10 +112,34 @@ Subject: Email Subject
 - Results showing: title, link, date, score, snippet
 - Can be web application (intranet) or desktop application
 
-## Current Configuration Issues
-⚠️ **Paths need updating for Windows environment**:
-- Database path: Currently `/Users/oleeriksen/Data/searchDBmedium.db`
-- Index folder: Currently `/Users/oleeriksen/Data/seData/medium`
+## Essential Commands
+
+### Build Solution
+```bash
+dotnet build SearchEngine.sln
+```
+
+### Run Projects
+```bash
+# Run indexer (crawls and indexes documents)
+dotnet run --project indexer
+
+# Run search console (interactive search)
+dotnet run --project ConsoleSearch
+```
+
+### Configuration Setup
+Before running, update these paths in:
+- `Shared/Paths.cs` - Database path (platform-specific)
+- `indexer/Config.cs` - Folder to index
+
+### Database Inspection
+Use SQLite browser to inspect `Data/searchDB.db` after indexing.
+
+## Current Configuration
+⚠️ **Paths are configured for current macOS environment**:
+- Database: `/Users/rosell/ITA_SEM6_SearchEngine/Data/searchDB.db`
+- Index folder: `C:\Users\Gusta\OneDrive\Dokumenter\GitHub\SearchEngine-main\Data\seData copy\medium`
 
 ## Available Assignments (from Danish docs)
 
@@ -193,10 +219,17 @@ The `assignments.md` file contains:
 6. Test search functionality with various queries
 7. Choose assignment(s) to implement based on learning objectives
 
-## Key Files to Understand
-- `indexer\App.cs` - Indexing workflow
-- `indexer\Crawler.cs` - Text extraction and word parsing
-- `ConsoleSearch\App.cs` - Search interface
-- `ConsoleSearch\SearchLogic.cs` - Search algorithm
-- `ConsoleSearch\DatabaseSqlite.cs` - Database query implementation
-- `Shared\Paths.cs` - Configuration that needs updating
+## Architecture Notes
+
+### Key Files
+- `indexer/App.cs` - Indexing main workflow at indexer:32
+- `indexer/Crawler.cs` - Text extraction and word parsing logic
+- `ConsoleSearch/App.cs` - Interactive search console interface
+- `ConsoleSearch/SearchLogic.cs` - Search algorithm and ranking at ConsoleSearch:45
+- `Shared/Paths.cs` - Cross-platform database path configuration at Shared:7
+
+### Search Algorithm Details
+The system implements a basic TF (term frequency) scoring model where each document's relevance score is calculated as the percentage of query terms found within it. The inverted index allows efficient lookup of documents containing specific terms, with results ranked by descending relevance score and limited to top 10.
+
+### Configuration Dependencies
+Both applications depend on proper path configuration in `Shared/Paths.cs` and indexer folder setting in `indexer/Config.cs`. The path logic uses `RuntimeInformation` to detect the current platform and select appropriate file system paths.

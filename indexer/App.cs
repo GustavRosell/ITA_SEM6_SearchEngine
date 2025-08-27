@@ -7,11 +7,11 @@ namespace Indexer
 {
     public class App
     {
-        public void Run(){
+        public void Run(string dataset){
             DatabaseSqlite db = new DatabaseSqlite(Paths.DATABASE);
             Crawler crawler = new Crawler(db);
 
-            var root = new DirectoryInfo(Config.FOLDER);
+            var root = new DirectoryInfo(Config.GetFolder(dataset));
 
             DateTime start = DateTime.Now;
 
