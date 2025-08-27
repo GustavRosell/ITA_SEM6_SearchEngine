@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Shared;
 using Shared.Model;
 using Microsoft.Data.Sqlite;
@@ -9,8 +10,6 @@ namespace ConsoleSearch
     public class DatabaseSqlite : IDatabase
     {
         private SqliteConnection _connection;
-
-        private Dictionary<string, int> mWords = null;
 
         public DatabaseSqlite()
         {
@@ -204,6 +203,81 @@ namespace ConsoleSearch
             }
             outIgnored = ignored;
             return res;
+        }
+
+        public List<string> GetWordsMatchingPattern(string pattern)
+        {
+            var res = new List<string>();
+            var sqlPattern = pattern.Replace('?', '_').Replace('*', '%');
+            var command = _connection.CreateCommand();
+            command.CommandText = "SELECT name FROM word WHERE name LIKE @pattern";
+            command.Parameters.AddWithValue("@pattern", sqlPattern);
+
+            using (var reader = command.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    res.Add(reader.GetString(0));
+                }
+            }
+            return res;
+        }
+
+        public Dictionary<int, List<string>> GetDocsWithMatchingWords(List<string> matchingWords)
+        {
+            var result = new Dictionary<int, List<string>>();
+            if (matchingWords == null || matchingWords.Count == 0) return result;
+
+            // Step 1: Get word IDs and create lookup maps
+            var wordIdToName = new Dictionary<int, string>();
+            var wordNameToId = new Dictionary<string, int>();
+            var wordParams = string.Join(",", matchingWords.Select((_, i) => $"@p{i}"));
+            var command = _connection.CreateCommand();
+            command.CommandText = $"SELECT id, name FROM word WHERE name IN ({wordParams})";
+            for (int i = 0; i < matchingWords.Count; i++)
+            {
+                command.Parameters.AddWithValue($"@p{i}", matchingWords[i]);
+            }
+
+            using (var reader = command.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    int id = reader.GetInt32(0);
+                    string name = reader.GetString(1);
+                    wordIdToName[id] = name;
+                    wordNameToId[name] = id;
+                }
+            }
+
+            if (wordIdToName.Count == 0) return result;
+
+            // Step 2: Get all occurrences for the found word IDs
+            var idParams = string.Join(",", wordIdToName.Keys.Select((_, i) => $"@id{i}"));
+            var occCommand = _connection.CreateCommand();
+            occCommand.CommandText = $"SELECT docId, wordId FROM Occ WHERE wordId IN ({idParams})";
+            int j = 0;
+            foreach (var id in wordIdToName.Keys)
+            {
+                occCommand.Parameters.AddWithValue($"@id{j++}", id);
+            }
+
+            // Step 3: Map docIds to the list of matching words they contain
+            using (var reader = occCommand.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    int docId = reader.GetInt32(0);
+                    int wordId = reader.GetInt32(1);
+                    if (!result.ContainsKey(docId))
+                    {
+                        result[docId] = new List<string>();
+                    }
+                    result[docId].Add(wordIdToName[wordId]);
+                }
+            }
+
+            return result;
         }
     }
 }

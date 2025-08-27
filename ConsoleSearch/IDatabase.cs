@@ -32,5 +32,9 @@ namespace ConsoleSearch
         /// words
         /// </summary>
         List<string> WordsFromIds(List<int> wordIds);
+
+        List<string> GetWordsMatchingPattern(string pattern);
+
+        Dictionary<int, List<string>> GetDocsWithMatchingWords(List<string> matchingWords);
     }
 }

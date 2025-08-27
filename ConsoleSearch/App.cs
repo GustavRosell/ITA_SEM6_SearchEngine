@@ -18,6 +18,7 @@ namespace ConsoleSearch
             {
                 DisplayMenu();
                 string input = Console.ReadLine();
+                if (string.IsNullOrEmpty(input)) continue;
                 if (input.Equals("q")) break;
 
                 switch (input)
@@ -44,34 +45,51 @@ namespace ConsoleSearch
                             Console.WriteLine("Invalid input. Limit unchanged.");
                         }
                         continue;
+                    case "4":
+                        Config.PatternSearch = !Config.PatternSearch;
+                        continue;
                 }
 
-                if (input.StartsWith("/"))
+                if (Config.PatternSearch)
+                {
+                    var patternResult = mSearchLogic.PatternSearch(input);
+                    Console.WriteLine("Pattern Search Results:");
+                    int patternIdx = 1;
+                    foreach (var hit in patternResult.Hits)
+                    {
+                        Console.WriteLine($"{patternIdx}: {hit.Document.mUrl} -- contains {hit.MatchingWords.Count} matching terms:");
+                        Console.WriteLine($"    {string.Join(", ", hit.MatchingWords)}");
+                        patternIdx++;
+                    }
+                    Console.WriteLine($"Found {patternResult.Hits.Count} documents.");
+                }
+                else if (input.StartsWith("/"))
                 {
                     HandleCommand(input);
-                    continue;
                 }
-
-                var query = input.Split(" ", StringSplitOptions.RemoveEmptyEntries);
-                var result = mSearchLogic.Search(query);
-
-                if (result.Ignored.Count > 0)
+                else
                 {
-                    Console.WriteLine($"Ignored: {string.Join(',', result.Ignored)}");
-                }
+                    var query = input.Split(" ", StringSplitOptions.RemoveEmptyEntries);
+                    var searchResult = mSearchLogic.Search(query);
 
-                int idx = 1;
-                foreach (var doc in result.DocumentHits)
-                {
-                    Console.WriteLine($"{idx} : {doc.Document.mUrl} -- contains {doc.NoOfHits} search terms");
-                    if (Config.ViewTimeStamps)
+                    if (searchResult.Ignored.Count > 0)
                     {
-                        Console.WriteLine("Index time: " + doc.Document.mIdxTime);
+                        Console.WriteLine($"Ignored: {string.Join(',', searchResult.Ignored)}");
                     }
-                    Console.WriteLine($"Missing: {ArrayAsString(doc.Missing.ToArray())}");
-                    idx++;
+
+                    int searchIdx = 1;
+                    foreach (var doc in searchResult.DocumentHits)
+                    {
+                        Console.WriteLine($"{searchIdx} : {doc.Document.mUrl} -- contains {doc.NoOfHits} search terms");
+                        if (Config.ViewTimeStamps)
+                        {
+                            Console.WriteLine("    Index time: " + doc.Document.mIdxTime);
+                        }
+                        Console.WriteLine($"    Missing: {ArrayAsString(doc.Missing.ToArray())}");
+                        searchIdx++;
+                    }
+                    Console.WriteLine("Documents: " + searchResult.Hits + ". Time: " + searchResult.TimeUsed.TotalMilliseconds);
                 }
-                Console.WriteLine("Documents: " + result.Hits + ". Time: " + result.TimeUsed.TotalMilliseconds);
             }
         }
 
@@ -81,8 +99,9 @@ namespace ConsoleSearch
             string caseStatus = Config.CaseSensitive ? "ON" : "OFF";
             string timeStatus = Config.ViewTimeStamps ? "ON" : "OFF";
             string limitStatus = Config.ResultLimit.HasValue ? Config.ResultLimit.Value.ToString() : "ALL";
+            string patternStatus = Config.PatternSearch ? "ON" : "OFF";
 
-            Console.WriteLine($"OPTIONS: [1] Case Sensitive: {caseStatus}   [2] Timestamps: {timeStatus}   [3] Result Limit: {limitStatus}");
+            Console.WriteLine($"OPTIONS: [1] Case Sensitive: {caseStatus}   [2] Timestamps: {timeStatus}   [3] Result Limit: {limitStatus}   [4] Pattern Search: {patternStatus}");
             Console.WriteLine("Enter a search query, a number to change an option, or 'q' to quit.");
             Console.Write("> ");
         }

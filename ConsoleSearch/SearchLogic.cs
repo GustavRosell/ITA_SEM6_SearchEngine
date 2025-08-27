@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Shared.Model;
 
 namespace ConsoleSearch
@@ -46,6 +47,38 @@ namespace ConsoleSearch
             }
 
             return new SearchResult(query, docIds.Count, docresult, ignored, DateTime.Now - start);
+        }
+
+        public PatternSearchResult PatternSearch(string pattern)
+        {
+            // Step 1: Find all words in the database that match the pattern
+            var matchingWords = mDatabase.GetWordsMatchingPattern(pattern);
+            if (matchingWords.Count == 0)
+            {
+                return new PatternSearchResult(new List<PatternDocumentHit>());
+            }
+
+            // Step 2: Find which documents contain these words and which specific words are in each
+            var docsWithWords = mDatabase.GetDocsWithMatchingWords(matchingWords);
+
+            // Step 3: Get the full details for the documents we found
+            var docIds = new List<int>(docsWithWords.Keys);
+            var docDetails = mDatabase.GetDocDetails(docIds);
+            var docDetailsMap = docDetails.ToDictionary(d => d.mId);
+
+            // Step 4: Assemble the final result
+            var hits = new List<PatternDocumentHit>();
+            foreach (var entry in docsWithWords)
+            {
+                int docId = entry.Key;
+                List<string> wordsInDoc = entry.Value;
+                if (docDetailsMap.ContainsKey(docId))
+                {
+                    hits.Add(new PatternDocumentHit(docDetailsMap[docId], wordsInDoc));
+                }
+            }
+
+            return new PatternSearchResult(hits);
         }
     }
 }
