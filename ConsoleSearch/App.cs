@@ -12,8 +12,8 @@ namespace ConsoleSearch
 
         public void Run()
         {
-            SearchLogic mSearchLogic = new SearchLogic(new DatabaseSqlite());
-            Console.WriteLine("Console Search");
+            ApiClient apiClient = new ApiClient();
+            Console.WriteLine("Console Search (API Mode)");
 
             while (true)
             {
@@ -68,7 +68,7 @@ namespace ConsoleSearch
 
                 if (Config.PatternSearch)
                 {
-                    var patternResult = mSearchLogic.PatternSearch(input);
+                    var patternResult = apiClient.PatternSearchAsync(input, Config.CaseSensitive, Config.ResultLimit).Result;
                     Console.WriteLine("Pattern Search Results:");
                     int patternIdx = 1;
                     foreach (var hit in patternResult.Hits)
@@ -86,7 +86,18 @@ namespace ConsoleSearch
                         }
                         patternIdx++;
                     }
-                    Console.WriteLine($"Found {patternResult.Hits.Count} documents.");
+                    if (patternResult.TotalDocuments == 0)
+                    {
+                        Console.WriteLine("No documents matched the pattern.");
+                    }
+                    else if (patternResult.IsTruncated)
+                    {
+                        Console.WriteLine($"Found {patternResult.TotalDocuments} documents and {patternResult.TotalHits} hits (showing {patternResult.ReturnedDocuments} documents / {patternResult.ReturnedHits} hits due to limit) in {patternResult.TimeUsedMs:F2} ms.");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Found {patternResult.ReturnedDocuments} documents and {patternResult.ReturnedHits} hits in {patternResult.TimeUsedMs:F2} ms.");
+                    }
                 }
                 else if (input.StartsWith("/"))
                 {
@@ -95,7 +106,7 @@ namespace ConsoleSearch
                 else
                 {
                     var query = input.Split(" ", StringSplitOptions.RemoveEmptyEntries);
-                    var searchResult = mSearchLogic.Search(query);
+                    var searchResult = apiClient.SearchAsync(query, Config.CaseSensitive, Config.ResultLimit, Config.ViewTimeStamps).Result;
 
                     if (searchResult.Ignored.Count > 0)
                     {
@@ -125,7 +136,14 @@ namespace ConsoleSearch
                         }
                         searchIdx++;
                     }
-                    Console.WriteLine("Documents: " + searchResult.Hits + ". Time: " + searchResult.TimeUsed.TotalMilliseconds);
+                    if (searchResult.IsTruncated)
+                    {
+                        Console.WriteLine($"Found {searchResult.TotalDocuments} documents and {searchResult.TotalHits} hits (showing {searchResult.ReturnedDocuments} documents / {searchResult.ReturnedHits} hits due to limit). Time: {searchResult.TimeUsed.TotalMilliseconds} ms");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Found {searchResult.ReturnedDocuments} documents and {searchResult.ReturnedHits} hits. Time: {searchResult.TimeUsed.TotalMilliseconds} ms");
+                    }
                 }
             }
         }
