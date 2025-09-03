@@ -52,7 +52,7 @@ namespace SearchAPI.Data
 
             var sql = "SELECT docId, COUNT(wordId) as count FROM Occ where ";
             sql += "wordId in " + AsString(wordIds) + " GROUP BY docId ";
-            sql += "ORDER BY count DESC;";
+            sql += "ORDER BY count DESC, docId ASC;";
 
             var selectCmd = _connection.CreateCommand();
             selectCmd.CommandText = sql;

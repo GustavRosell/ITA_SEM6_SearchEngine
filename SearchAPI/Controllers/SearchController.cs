@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using SearchAPI.Data;
+using SearchAPI.Services;
 
 namespace SearchAPI.Controllers
 {

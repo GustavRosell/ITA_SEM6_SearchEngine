@@ -5,7 +5,7 @@ using Shared.Model;
 using SearchAPI.Data;
 using SearchAPI.Models;
 
-namespace SearchAPI
+namespace SearchAPI.Services
 {
     public class SearchLogic
     {
@@ -112,10 +112,15 @@ namespace SearchAPI
             // Total hits = sum of distinct words counts pre-limit
             int totalHitsWildcard = ordered.Sum(x => x.Words.Count);
 
-            // Order: most distinct matches first, then docId
+            // Get document details for sorting by filename
+            var allDocIds = ordered.Select(o => o.DocId).ToList();
+            var allDetails = mDatabase.GetDocDetails(allDocIds);
+            var docMap = allDetails.ToDictionary(d => d.mId);
+
+            // Order: most distinct matches first, then by filename number
             ordered = ordered
                 .OrderByDescending(x => x.Words.Count)
-                .ThenBy(x => x.DocId)
+                .ThenBy(x => docMap.ContainsKey(x.DocId) ? GetFilenameNumber(docMap[x.DocId]) : int.MaxValue)
                 .ToList();
 
             var limitedOrdered = (resultLimit.HasValue && resultLimit.Value > 0)
@@ -143,6 +148,23 @@ namespace SearchAPI
                 Pattern = pattern,
                 TimeUsed = sw.Elapsed
             };
+        }
+
+        private static int GetFilenameNumber(BEDocument document)
+        {
+            try
+            {
+                var fileName = System.IO.Path.GetFileNameWithoutExtension(document.mUrl);
+                if (int.TryParse(fileName, out int number))
+                {
+                    return number;
+                }
+                return int.MaxValue;
+            }
+            catch
+            {
+                return int.MaxValue;
+            }
         }
 
         private class DocWordMatch
