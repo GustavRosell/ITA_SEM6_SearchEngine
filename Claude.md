@@ -132,6 +132,7 @@ cd indexer
 dotnet run small     # Index small dataset (13 emails)
 dotnet run medium    # Index medium dataset (~5,000 emails) 
 dotnet run large     # Index large dataset (~50,000 emails)
+# Alternative: dotnet run (will prompt for dataset selection)
 
 # Run search console (interactive search)
 cd ConsoleSearch
@@ -151,6 +152,14 @@ dotnet restore
 ### Database Inspection
 Use SQLite browser to inspect `Data/searchDB.db` after indexing.
 
+### Manual Testing Approach
+**No formal test framework** - this project uses manual testing with realistic datasets:
+- **Small dataset**: 13 emails for functional verification
+- **Medium dataset**: ~5,000 emails for functional + basic performance testing  
+- **Large dataset**: ~50,000 emails for performance testing
+- Test search functionality with 1-word, 2-word, and multi-word queries
+- Verify interactive menu options and configuration toggles
+
 ### Available Commands in Search Console
 - **Menu Options**: `1`, `2`, `3`, `4`, `5` - Toggle various settings
 - **Help**: `?` - Display comprehensive help with current settings and examples
@@ -163,11 +172,11 @@ Use SQLite browser to inspect `Data/searchDB.db` after indexing.
   - `/compact=on|off` - Toggle compact view display
 
 ## Cross-Platform Configuration
-✅ **Automatic platform detection working correctly**:
-- **Windows**: Database at `C:\Users\Gusta\OneDrive\Dokumenter\GitHub\SearchEngine-main\Data\searchDB.db`
-- **macOS/Linux**: Database at `/Users/rosell/ITA_SEM6_SearchEngine/Data/searchDB.db`
-- **Dataset folders**: Automatically configured for each platform
+✅ **Automatic platform detection implemented** via `RuntimeInformation.IsOSPlatform()`:
+- **Database paths**: Automatically selected based on detected OS
+- **Dataset folders**: Platform-specific paths configured in `indexer/Config.cs`
 - **No manual path changes needed** when switching between systems
+- See `Shared/Paths.cs` and `indexer/Config.cs` for implementation details
 
 ## Available Assignments (from Danish docs)
 
@@ -252,6 +261,19 @@ The `assignments.md` file contains:
 - What has been completed vs. what remains
 
 **Note**: All core assignments (1-6) have been implemented, plus additional user experience enhancements. The system now includes enhanced statistics, configurable search options, pattern matching capabilities, compact view display, and a comprehensive help system. See `assignments.md` for detailed implementation status.
+
+## Academic Course Context
+
+### Current Module: IT-Architecture Semester 6
+- **Module 2**: Search Engine PoC (completed assignments 1-6)
+- **Module 3**: AKF Scale Cube architecture patterns
+- Course materials located in `Documents/Modul X - Agenda/` folders
+- Assignment responses and analysis files created as course progresses
+
+### Course Materials Structure
+- **Reading materials**: `Læselektier.txt` and `Læselektier.pdf` files
+- **Assignment responses**: `Opgaver_ModulX.txt` files with Danish answers
+- **Database guides**: Technical documentation for SQLite inspection
 
 ## Getting Started Checklist
 1. Verify .NET 9.0 installation
