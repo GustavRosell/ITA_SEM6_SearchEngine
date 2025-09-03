@@ -293,7 +293,6 @@ namespace SearchAPI.Data
                 }
             }
 
-            Console.WriteLine($"DB DEBUG: GetDocsWithMatchingWords returning {result.Count} documents");
             return result;
         }
     }
