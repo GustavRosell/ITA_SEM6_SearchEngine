@@ -11,15 +11,20 @@ This is a **Proof of Concept (PoC) Search Engine** for IT-Architecture semester 
 
 ## Architecture & Components
 
-### Solution Structure
+### Solution Structure (Y-Scaled Architecture)
 - **`indexer`** - Console application that crawls and indexes documents
-- **`ConsoleSearch`** - Console application providing search functionality  
+- **`ConsoleSearch`** - Console application providing interactive search interface
+- **`SearchAPI`** - ASP.NET Core Web API providing RESTful search endpoints (Y-Scale component)
+- **`SearchWebApp`** - Blazor Server web application with Claude.ai-inspired UI
 - **`Shared`** - Class library containing common models and configuration
 
 ### Technology Stack
-- **.NET 9.0** C# console applications
+- **.NET 9.0** C# applications (console, API, and web)
+- **ASP.NET Core Web API** for search service layer
+- **Blazor Server** for modern web UI
 - **SQLite database** for inverted index storage
 - **Microsoft.Data.Sqlite** NuGet package (version 8.0.1)
+- **Microsoft.AspNetCore.OpenApi** for API documentation
 
 ### Database Schema (Inverted Index)
 SQLite database with three main tables:
@@ -73,10 +78,50 @@ Occurrence: docId, termId (many-to-many relationship)
 score = (number_of_matching_terms / total_query_terms)
 ```
 
-### 3. Shared Library (`Shared` project)
+### 3. Search API (`SearchAPI` project) ✅ **NEW - Y-SCALE COMPONENT**
+**Entry Point**: `Program.cs` → ASP.NET Core Web API
+- **Search Controller**: `Controllers/SearchController.cs` - RESTful API endpoints
+- **Search Logic**: `SearchLogic.cs` - Core search algorithms (moved from ConsoleSearch)
+- **Database**: `Data/DatabaseSqlite.cs` - Database access layer
+- **Models**: Pattern and document hit models for API responses
+
+**API Endpoints**:
+- `GET /api/search` - Standard search with query parameters
+  - Parameters: `query`, `caseSensitive`, `limit`, `includeTimestamps`
+- `GET /api/search/pattern` - Pattern search with wildcards (? and *)
+  - Parameters: `pattern`, `caseSensitive`, `limit`
+
+**API Features**:
+- RESTful design with proper HTTP status codes
+- JSON response format with metadata (timing, hit counts, truncation status)
+- Error handling with detailed error messages
+- OpenAPI/Swagger documentation support
+
+### 4. Web Application (`SearchWebApp` project) ✅ **NEW - BLAZOR UI**
+**Entry Point**: `Program.cs` → Blazor Server Application
+- **Main Page**: `Pages/Search.razor` - Claude.ai-inspired search interface
+- **Layout**: `Shared/MainLayout.razor` - App structure with collapsible sidebar
+- **Styling**: `wwwroot/css/claude-theme.css` - Dark theme with orange accents
+
+**UI Features**:
+- **Claude.ai-inspired design**: Dark background (`rgb(12, 12, 12)`) with orange accents (`rgb(234, 88, 12)`)
+- **Collapsible sidebar**: Starts closed like Claude.ai interface
+- **Search interface**: Prominent search bar with real-time API integration
+- **Filter toggles**: Case sensitivity, pattern search, compact view, timestamps
+- **Configurable results**: 20/50/100/150/200 or custom limit
+- **Expandable results**: Compact view with click-to-expand functionality
+- **Responsive design**: Mobile-friendly layout
+
+**API Integration**:
+- Consumes SearchAPI endpoints at `localhost:5137`
+- Real-time search with loading states
+- Error handling with user-friendly messages
+- Proper HTTP client configuration
+
+### 5. Shared Library (`Shared` project)
 - **`BEDocument.cs`**: Document business entity model
 - **`Paths.cs`**: Cross-platform database path configuration (auto-detects Windows/macOS/Linux)
-- **`IDatabase.cs`**: Database interface (used by both indexer and search)
+- **`IDatabase.cs`**: Database interface (used by indexer, ConsoleSearch, and SearchAPI)
 
 ## Test Data Structure
 
@@ -126,6 +171,8 @@ dotnet build SearchEngine.sln
 ```
 
 ### Run Projects
+
+#### 1. Index Documents (Required First Step)
 ```bash
 # Run indexer with dataset selection (crawls and indexes documents)
 cd indexer
@@ -133,10 +180,42 @@ dotnet run small     # Index small dataset (13 emails)
 dotnet run medium    # Index medium dataset (~5,000 emails) 
 dotnet run large     # Index large dataset (~50,000 emails)
 # Alternative: dotnet run (will prompt for dataset selection)
+```
 
-# Run search console (interactive search)
+#### 2. Search Applications (Choose One or Both)
+
+**Console Search (Original)**
+```bash
+# Run interactive console search
 cd ConsoleSearch
 dotnet run
+```
+
+**API Service (Y-Scale Component)** ✅ **NEW**
+```bash
+# Run REST API service (required for web app)
+cd SearchAPI
+dotnet run
+# API will be available at: http://localhost:5137
+# OpenAPI documentation at: http://localhost:5137/openapi/v1.json
+```
+
+**Web Application (Blazor UI)** ✅ **NEW**
+```bash
+# Run Blazor web application (requires API to be running)
+cd SearchWebApp
+dotnet run
+# Web app will be available at: http://localhost:5000 or https://localhost:5001
+```
+
+#### 3. Multi-Application Startup
+```bash
+# For full web experience, run both API and Web App simultaneously:
+# Terminal 1: Start the API
+cd SearchAPI && dotnet run
+
+# Terminal 2: Start the Web App (in separate terminal)
+cd SearchWebApp && dotnet run
 ```
 
 ### Restore Packages
@@ -224,20 +303,22 @@ Use SQLite browser to inspect `Data/searchDB.db` after indexing.
 ## Current State Assessment
 
 ### ✅ Working Components
-- Basic indexing and search functionality
-- Clean three-project architecture
-- Realistic test data (Enron dataset)
-- Proper inverted index implementation
-- Score-based ranking
-- Cross-platform support (Windows/macOS/Linux)
-- Enhanced statistics with word frequency
-- Case sensitivity control (`Config.CaseSensitive`)
-- Configurable result limits (`Config.ResultLimit`)
-- Timestamp display control (`Config.ViewTimeStamps`)
-- Pattern matching with wildcards (`Config.PatternSearch`)
-- Compact view for clean result display (`Config.CompactView`)
-- Interactive menu system for feature toggles
-- Comprehensive help system with contextual examples (accessible via `?`)
+- **Core Search Engine**: Indexing and search functionality with SQLite inverted index
+- **Y-Scaled Architecture**: Clean separation with 5-project structure (indexer, ConsoleSearch, SearchAPI, SearchWebApp, Shared)
+- **RESTful API**: SearchAPI provides HTTP endpoints for search operations
+- **Modern Web UI**: Blazor Server app with Claude.ai-inspired dark theme
+- **Cross-platform support**: Windows/macOS/Linux compatibility
+- **Realistic test data**: Enron email dataset (small/medium/large)
+- **Enhanced statistics**: Word frequency analysis and indexing metrics
+- **Advanced search features**:
+  - Case sensitivity control
+  - Configurable result limits (20/50/100/150/200/custom)
+  - Timestamp display control
+  - Pattern matching with wildcards (`?` and `*`)
+  - Compact view with expandable results
+- **Multiple interfaces**: Console, API, and Web UI all fully functional
+- **Interactive features**: Toggle-based configuration, contextual help system
+- **Professional UI/UX**: Claude.ai color scheme, responsive design, loading states
 
 ### ⚠️ Areas for Future Enhancement
 - No snippets in search results yet
@@ -266,7 +347,10 @@ The `assignments.md` file contains:
 
 ### Current Module: IT-Architecture Semester 6
 - **Module 2**: Search Engine PoC (completed assignments 1-6)
-- **Module 3**: AKF Scale Cube architecture patterns
+- **Module 3**: AKF Scale Cube architecture patterns ✅ **IMPLEMENTED**
+  - **Y-Scale** (functional decomposition): Search logic separated into dedicated API service
+  - **Modern web frontend**: Blazor application consuming REST API
+  - **Microservices approach**: Clear separation between indexer, API, console, and web UI
 - Course materials located in `Documents/Modul X - Agenda/` folders
 - Assignment responses and analysis files created as course progresses
 
@@ -276,14 +360,24 @@ The `assignments.md` file contains:
 - **Database guides**: Technical documentation for SQLite inspection
 
 ## Getting Started Checklist
+
+### Quick Start (Console Version)
 1. Verify .NET 9.0 installation
 2. ✅ Cross-platform paths already configured automatically
 3. Install SQLite browser for database inspection
 4. Build solution: `dotnet build SearchEngine.sln`
 5. Run indexer with dataset selection: `cd indexer && dotnet run medium`
-6. Test search functionality: `cd ConsoleSearch && dotnet run`
+6. Test console search: `cd ConsoleSearch && dotnet run`
 7. Explore interactive menu features (case sensitivity, timestamps, result limits, pattern search, compact view)
 8. Try the help system by typing `?` to see all available options and examples
+
+### Full Web Experience (Recommended) ✅ **NEW**
+1-5. Follow steps 1-5 from Quick Start above
+6. **Start API service**: `cd SearchAPI && dotnet run` (keep running)
+7. **Start web application**: Open new terminal, `cd SearchWebApp && dotnet run`
+8. **Open browser**: Navigate to `http://localhost:5000` or `https://localhost:5001`
+9. **Experience modern UI**: Claude.ai-inspired interface with dark theme and orange accents
+10. **Test all features**: Search, filters, pattern matching, result limits, compact view
 
 ## Architecture Notes
 
@@ -291,7 +385,11 @@ The `assignments.md` file contains:
 - `indexer/App.cs` - Indexing main workflow at indexer:32
 - `indexer/Crawler.cs` - Text extraction and word parsing logic
 - `ConsoleSearch/App.cs` - Interactive search console interface
-- `ConsoleSearch/SearchLogic.cs` - Search algorithm and ranking at ConsoleSearch:45
+- `SearchAPI/SearchLogic.cs` - Search algorithm and ranking (moved from ConsoleSearch) at SearchAPI:10
+- `SearchAPI/Controllers/SearchController.cs` - REST API endpoints at SearchAPI:8
+- `SearchWebApp/Pages/Search.razor` - Claude.ai-inspired web interface at SearchWebApp:1
+- `SearchWebApp/wwwroot/css/claude-theme.css` - Dark theme styling at SearchWebApp:1
+- `SearchWebApp/Shared/MainLayout.razor` - App layout with collapsible sidebar at SearchWebApp:1
 - `Shared/Paths.cs` - Cross-platform database path configuration at Shared:7
 
 ### Search Algorithm Details

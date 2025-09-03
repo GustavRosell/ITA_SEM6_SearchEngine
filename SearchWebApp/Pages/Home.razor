@@ -1,0 +1,101 @@
+@page "/"
+
+<div class="content-wrapper">
+    <div class="home-section">
+        <div class="welcome-container">
+            <h1 class="welcome-title">Welcome to Search Engine</h1>
+            <p class="welcome-description">
+                A powerful document search solution for organizations with 50+ employees.
+                Search through thousands of documents instantly with our advanced indexing system.
+            </p>
+            <div class="welcome-actions">
+                <a href="/search" class="welcome-button">
+                    <span class="icon icon-search"></span>
+                    Start Searching
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .home-section {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 60vh;
+        text-align: center;
+    }
+
+    .welcome-container {
+        max-width: 600px;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+    }
+
+    .welcome-title {
+        font-size: 48px;
+        font-weight: 600;
+        color: var(--foreground);
+        line-height: 1.2;
+    }
+
+    .welcome-description {
+        font-size: 18px;
+        color: var(--muted-foreground);
+        line-height: 1.6;
+        margin: 0;
+    }
+
+    .welcome-actions {
+        margin-top: 16px;
+    }
+
+    .welcome-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px 32px;
+        background-color: var(--accent);
+        color: var(--accent-foreground);
+        text-decoration: none;
+        font-size: 18px;
+        font-weight: 500;
+        border-radius: 12px;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 12px rgba(234, 88, 12, 0.2);
+    }
+
+    .welcome-button:hover {
+        background-color: rgb(210, 79, 11);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(234, 88, 12, 0.3);
+        color: var(--accent-foreground);
+        text-decoration: none;
+    }
+
+    .welcome-button:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 8px rgba(234, 88, 12, 0.3);
+    }
+
+    .welcome-button .icon {
+        font-size: 20px;
+    }
+
+    @@media (max-width: 768px) {
+        .welcome-title {
+            font-size: 36px;
+        }
+        
+        .welcome-description {
+            font-size: 16px;
+        }
+        
+        .welcome-button {
+            padding: 14px 28px;
+            font-size: 16px;
+        }
+    }
+</style>

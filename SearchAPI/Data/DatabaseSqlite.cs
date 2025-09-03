@@ -215,7 +215,6 @@ namespace SearchAPI.Data
                 // Case sensitive: use GLOB directly (supports * and ?)
                 command.CommandText = "SELECT name FROM word WHERE name GLOB @pattern";
                 command.Parameters.AddWithValue("@pattern", pattern);
-                Console.WriteLine($"DB DEBUG: GLOB (case sensitive) pattern='{pattern}'");
             }
             else
             {
@@ -223,7 +222,6 @@ namespace SearchAPI.Data
                 var sqlPattern = pattern.Replace('?', '_').Replace('*', '%');
                 command.CommandText = "SELECT name FROM word WHERE name LIKE @pattern";
                 command.Parameters.AddWithValue("@pattern", sqlPattern);
-                Console.WriteLine($"DB DEBUG: LIKE (case insensitive) orig='{pattern}' conv='{sqlPattern}'");
             }
 
             using (var reader = command.ExecuteReader())
@@ -234,7 +232,6 @@ namespace SearchAPI.Data
                 }
             }
 
-            Console.WriteLine($"DB DEBUG: Found {result.Count} words (pattern). Examples: [{string.Join(", ", result.Take(5))}]");
             return result;
         }
 
@@ -243,11 +240,9 @@ namespace SearchAPI.Data
             var result = new Dictionary<int, List<string>>();
             if (matchingWords == null || matchingWords.Count == 0)
             {
-                Console.WriteLine("DB DEBUG: No matching words provided to GetDocsWithMatchingWords");
                 return result;
             }
             
-            Console.WriteLine($"DB DEBUG: GetDocsWithMatchingWords called with {matchingWords.Count} words: [{string.Join(", ", matchingWords)}]");
 
             // Step 1: Get word IDs and create lookup maps
             var wordIdToName = new Dictionary<int, string>();

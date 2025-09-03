@@ -1,5 +1,4 @@
 @page "/search"
-@page "/"
 @using System.Net.Http.Json
 @using System.Text.Json
 @inject HttpClient Http
@@ -67,7 +66,7 @@
             <span>Results:</span>
             
             <div class="select-container">
-                <select @bind="resultLimitOption" class="select">
+                <select @bind="resultLimitOption" @bind:after="OnResultLimitChanged" class="select">
                     <option value="20">20</option>
                     <option value="50">50</option>
                     <option value="100">100</option>
@@ -81,6 +80,7 @@
             {
                 <input type="number" 
                        @bind="customLimit" 
+                       @bind:after="OnCustomLimitChanged"
                        class="custom-input" 
                        placeholder="Enter limit" 
                        min="1" 
@@ -146,17 +146,11 @@
                         @foreach (var (result, index) in patternResults.Select((r, i) => (r, i + 1)))
                         {
                             <div class="card">
-                                <div class="card-header @(compactView ? "compact clickable" : "")" @onclick="@(compactView ? () => ToggleExpanded($"pattern_{result.Document.Id}_{index}") : null)">
+                                <div class="card-header @(compactView ? "compact clickable" : "")" @onclick="@(() => HandleCardClick(compactView, $"pattern_{result.Document.Id}_{index}"))">
                                     <div class="card-title-row">
                                         <h3 class="card-title">@index. @System.IO.Path.GetFileName(result.Document.Url)</h3>
                                         <div class="card-meta">
                                             <span class="badge">@result.MatchingWords.Count match@(result.MatchingWords.Count == 1 ? "" : "es")</span>
-                                            @if (includeTimestamps && !string.IsNullOrEmpty(result.Document.IndexTime))
-                                            {
-                                                <small style="color: var(--muted-foreground); font-size: 12px;">
-                                                    @DateTime.Parse(result.Document.IndexTime).ToString("MMM d")
-                                                </small>
-                                            }
                                             @if (compactView)
                                             {
                                                 <span class="expand-icon">@(IsExpanded($"pattern_{result.Document.Id}_{index}") ? "▼" : "▶")</span>
@@ -175,7 +169,7 @@
                                         @if (includeTimestamps && !string.IsNullOrEmpty(result.Document.IndexTime))
                                         {
                                             <div class="card-timestamp">
-                                                Indexed: @DateTime.Parse(result.Document.IndexTime).ToString("MMM d, yyyy 'at' h:mm tt")
+                                                Indexed: @DateTime.Parse(result.Document.IndexTime).ToString("MMM d, yyyy 'at' HH:mm")
                                             </div>
                                         }
                                     </div>
@@ -216,17 +210,11 @@
                         @foreach (var (result, index) in searchResults.DocumentHits.Select((r, i) => (r, i + 1)))
                         {
                             <div class="card">
-                                <div class="card-header @(compactView ? "compact clickable" : "")" @onclick="@(compactView ? () => ToggleExpanded($"normal_{result.Document.Id}_{index}") : null)">
+                                <div class="card-header @(compactView ? "compact clickable" : "")" @onclick="@(() => HandleCardClick(compactView, $"normal_{result.Document.Id}_{index}"))">
                                     <div class="card-title-row">
                                         <h3 class="card-title">@index. @System.IO.Path.GetFileName(result.Document.Url)</h3>
                                         <div class="card-meta">
                                             <span class="badge">@result.NoOfHits hit@(result.NoOfHits == 1 ? "" : "s")</span>
-                                            @if (includeTimestamps && !string.IsNullOrEmpty(result.Document.IndexTime))
-                                            {
-                                                <small style="color: var(--muted-foreground); font-size: 12px;">
-                                                    @DateTime.Parse(result.Document.IndexTime).ToString("MMM d")
-                                                </small>
-                                            }
                                             @if (compactView)
                                             {
                                                 <span class="expand-icon">@(IsExpanded($"normal_{result.Document.Id}_{index}") ? "▼" : "▶")</span>
@@ -244,7 +232,7 @@
                                         @if (includeTimestamps && !string.IsNullOrEmpty(result.Document.IndexTime))
                                         {
                                             <div class="card-timestamp">
-                                                Indexed: @DateTime.Parse(result.Document.IndexTime).ToString("MMM d, yyyy 'at' h:mm tt")
+                                                Indexed: @DateTime.Parse(result.Document.IndexTime).ToString("MMM d, yyyy 'at' HH:mm")
                                             </div>
                                         }
                                         @if (result.Missing?.Any() == true)
@@ -436,6 +424,34 @@
     private bool IsExpanded(string key)
     {
         return expandedItems.TryGetValue(key, out var isExpanded) && isExpanded;
+    }
+
+    // Auto-update search when result limits change
+    private async Task OnResultLimitChanged()
+    {
+        // Only re-search if we already have results (avoid empty searches)
+        if (!string.IsNullOrWhiteSpace(lastSearchQuery))
+        {
+            await PerformSearch();
+        }
+    }
+
+    private async Task OnCustomLimitChanged()
+    {
+        // Only re-search if custom option is selected and we have results
+        if (resultLimitOption == "custom" && !string.IsNullOrWhiteSpace(lastSearchQuery))
+        {
+            await PerformSearch();
+        }
+    }
+
+    // Helper method to handle card clicks without null warnings
+    private void HandleCardClick(bool isCompactView, string key)
+    {
+        if (isCompactView)
+        {
+            ToggleExpanded(key);
+        }
     }
 
     // Data models for Blazor (same as original)

@@ -14,7 +14,7 @@
   --border: rgb(39, 39, 42); /* Subtle borders */
   --input: rgb(24, 24, 27);
   --ring: rgba(234, 88, 12, 0.5);
-  --sidebar: rgb(18, 18, 18); /* Darker sidebar - the black you want! */
+  --sidebar: rgb(24, 24, 27); /* Match card/input grey */
   --sidebar-foreground: rgb(248, 250, 252);
   --sidebar-border: rgb(39, 39, 42);
 }
@@ -52,11 +52,24 @@ body {
   background-color: var(--background);
   color: var(--foreground);
   transition: background-color 0.2s ease, color 0.2s ease;
+  overflow: hidden; /* Prevent body scrolling */
 }
 
 /* Dark mode by default */
 html {
   color-scheme: dark;
+  overflow: hidden; /* Prevent html scrolling */
+  height: 100%; /* Ensure full height */
+}
+
+/* Global scrollbar hiding for any scrollable elements */
+* {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
+
+*::-webkit-scrollbar {
+  display: none; /* Webkit browsers */
 }
 
 body {
@@ -71,7 +84,7 @@ body {
   --border: rgb(39, 39, 42);
   --input: rgb(24, 24, 27);
   --ring: rgba(234, 88, 12, 0.5);
-  --sidebar: rgb(18, 18, 18);
+  --sidebar: rgb(24, 24, 27);
   --sidebar-foreground: rgb(248, 250, 252);
   --sidebar-border: rgb(39, 39, 42);
 }
@@ -86,7 +99,7 @@ body {
 /* Sidebar */
 .sidebar {
   width: 256px;
-  background-color: var(--sidebar);
+  background-color: var(--sidebar) !important; /* Force grey color */
   border-right: 1px solid var(--sidebar-border);
   transition: margin-left 0.3s ease;
   flex-shrink: 0;
@@ -147,12 +160,13 @@ body {
   align-items: center;
   justify-content: flex-start;
   padding: 80px 24px 24px;
-  overflow-y: auto;
+  overflow: hidden; /* Remove main page scrollbar */
 }
 
 .content-wrapper {
   width: 100%;
   max-width: 768px;
+  height: 100%; /* Take full height */
   display: flex;
   flex-direction: column;
   gap: 32px;
@@ -385,12 +399,15 @@ body {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  flex: 1; /* Take remaining space */
+  min-height: 0; /* Allow flexbox to shrink */
 }
 
 .results-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-shrink: 0; /* Keep header fixed size */
 }
 
 .results-count {
@@ -402,6 +419,16 @@ body {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  overflow-y: auto; /* Allow scrolling through results */
+  flex: 1; /* Take remaining space */
+  /* Hide scrollbars but keep functionality */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
+
+/* Hide scrollbars for Webkit browsers (Chrome, Safari, Edge) */
+.results-list::-webkit-scrollbar {
+  display: none;
 }
 
 /* Cards */
