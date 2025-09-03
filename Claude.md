@@ -44,23 +44,29 @@ Occurrence: docId, termId (many-to-many relationship)
 - Platform-specific database paths via `RuntimeInformation`
 
 **Indexing Workflow**:
-1. Recursively crawls configured directory for `.txt` files
-2. Extracts and normalizes words using defined separators
-3. Builds inverted index in SQLite database
-4. Outputs indexing statistics
+1. Prompts user to select dataset size (small/medium/large)
+2. Recursively crawls configured directory for `.txt` files
+3. Extracts and normalizes words using defined separators
+4. Builds inverted index in SQLite database
+5. Outputs comprehensive statistics including:
+   - Total documents indexed
+   - Total word occurrences
+   - Top N most frequent words (user-configurable)
 
 ### 2. Search Engine (`ConsoleSearch` project)
 **Entry Point**: `Program.cs` → `App.cs`
 - **Search Logic**: `SearchLogic.cs` - implements search algorithm
 - **Database**: `DatabaseSqlite.cs` - read-only database access
 - **Models**: `SearchResult.cs`, `DocumentHit.cs`
+- **Config**: `Config.cs` - feature toggles (case sensitivity, timestamps, result limits, pattern search, compact view)
 
 **Search Workflow**:
-1. Accepts multi-word queries via console
-2. Maps query terms to word IDs in database
-3. Finds intersecting documents using inverted index
-4. Calculates relevance scores and ranks results
-5. Returns top 10 results with metadata
+1. Displays interactive menu with feature toggles
+2. Accepts queries (normal search or pattern matching)
+3. Maps query terms to word IDs in database
+4. Finds intersecting documents using inverted index
+5. Calculates relevance scores and ranks results
+6. Returns configurable number of results (default 20) with metadata
 
 **Scoring Algorithm**: 
 ```
@@ -69,7 +75,7 @@ score = (number_of_matching_terms / total_query_terms)
 
 ### 3. Shared Library (`Shared` project)
 - **`BEDocument.cs`**: Document business entity model
-- **`Paths.cs`**: Platform-specific database path configuration
+- **`Paths.cs`**: Cross-platform database path configuration (auto-detects Windows/macOS/Linux)
 - **`IDatabase.cs`**: Database interface (used by both indexer and search)
 
 ## Test Data Structure
@@ -121,25 +127,47 @@ dotnet build SearchEngine.sln
 
 ### Run Projects
 ```bash
-# Run indexer (crawls and indexes documents)
-dotnet run --project indexer
+# Run indexer with dataset selection (crawls and indexes documents)
+cd indexer
+dotnet run small     # Index small dataset (13 emails)
+dotnet run medium    # Index medium dataset (~5,000 emails) 
+dotnet run large     # Index large dataset (~50,000 emails)
 
 # Run search console (interactive search)
-dotnet run --project ConsoleSearch
+cd ConsoleSearch
+dotnet run
+```
+
+### Restore Packages
+```bash
+dotnet restore
 ```
 
 ### Configuration Setup
-Before running, update these paths in:
-- `Shared/Paths.cs` - Database path (platform-specific)
-- `indexer/Config.cs` - Folder to index
+**No manual configuration needed!** The system automatically detects your platform (Windows/macOS/Linux) and uses appropriate paths:
+- `Shared/Paths.cs` - Database path (auto-detects platform)
+- `indexer/Config.cs` - Dataset folders (auto-detects platform)
 
 ### Database Inspection
 Use SQLite browser to inspect `Data/searchDB.db` after indexing.
 
-## Current Configuration
-⚠️ **Paths are configured for current macOS environment**:
-- Database: `/Users/rosell/ITA_SEM6_SearchEngine/Data/searchDB.db`
-- Index folder: `C:\Users\Gusta\OneDrive\Dokumenter\GitHub\SearchEngine-main\Data\seData copy\medium`
+### Available Commands in Search Console
+- **Menu Options**: `1`, `2`, `3`, `4`, `5` - Toggle various settings
+- **Help**: `?` - Display comprehensive help with current settings and examples
+- **Quit**: `q` - Exit the application
+- **Slash Commands**: 
+  - `/casesensitive=on|off` - Toggle case sensitivity
+  - `/timestamp=on|off` - Toggle timestamp display
+  - `/results=NUMBER|all` - Set result limit
+  - `/pattern=on|off` - Toggle pattern search mode
+  - `/compact=on|off` - Toggle compact view display
+
+## Cross-Platform Configuration
+✅ **Automatic platform detection working correctly**:
+- **Windows**: Database at `C:\Users\Gusta\OneDrive\Dokumenter\GitHub\SearchEngine-main\Data\searchDB.db`
+- **macOS/Linux**: Database at `/Users/rosell/ITA_SEM6_SearchEngine/Data/searchDB.db`
+- **Dataset folders**: Automatically configured for each platform
+- **No manual path changes needed** when switching between systems
 
 ## Available Assignments (from Danish docs)
 
@@ -151,29 +179,38 @@ Use SQLite browser to inspect `Data/searchDB.db` after indexing.
 - Run indexer, inspect database
 - Test search console with 1, 2, and multiple word queries
 
-### Assignment 2: Enhanced Statistics
-- Modify indexer output to show:
-  - Total word occurrences indexed
-  - User-specified number of most frequent words
-  - Words ranked by frequency (most frequent first)
+### Assignment 2: Enhanced Statistics ✅ **COMPLETED**
+- ✅ Shows total word occurrences indexed
+- ✅ Prompts user for number of most frequent words to display
+- ✅ Displays words ranked by frequency (most frequent first)
+- ✅ Format: `<word, id> - frequency`
 
-### Assignment 3: Case Sensitivity Control
-- Add user commands like `/casesensitive=on/off`
-- Alternative: Add `CaseSensitive` boolean to Config class
+### Assignment 3: Case Sensitivity Control ✅ **COMPLETED**
+- ✅ Interactive menu option "1" to toggle case sensitivity
+- ✅ `Config.CaseSensitive` boolean controls behavior
+- ✅ Default: case-sensitive search enabled
 
-### Assignment 4: Timestamp Display Control
-- Add user commands like `/timestamp=on/off`
-- Alternative: Add `ViewTimeStamps` boolean to Config class
+### Assignment 4: Timestamp Display Control ✅ **COMPLETED**
+- ✅ Interactive menu option "2" to toggle timestamp display
+- ✅ `Config.ViewTimeStamps` boolean controls display
+- ✅ Default: timestamps shown in results
 
-### Assignment 5: Result Limit Configuration
-- Change from fixed 10 results to user-configurable
-- Add commands like `/results=15` or `/results=all`
-- Alternative: Add `int?` result limit to Config class
+### Assignment 5: Result Limit Configuration ✅ **COMPLETED**
+- ✅ Interactive menu option "3" to configure result limits
+- ✅ Supports specific numbers (e.g., 15) or "all" for unlimited
+- ✅ `Config.ResultLimit` int? property (default: 20)
+- ✅ Changed from fixed 10 to configurable system
 
-### Assignment 6: Pattern Matching (Advanced)
-- Implement wildcard search with `?` (single char) and `*` (multiple chars)
-- Example: `BJ????7` matches 7-char words starting with BJ, ending with 7
-- Show matching terms in results
+### Assignment 6: Pattern Matching ✅ **COMPLETED**
+- ✅ Interactive menu option "4" to enable pattern search mode
+- ✅ Supports `?` (single char) and `*` (multiple chars) wildcards
+- ✅ `Config.PatternSearch` boolean toggle
+- ✅ Shows matching terms in results
+
+### Additional Enhancements ✅ **IMPLEMENTED**
+- ✅ **Compact View** - Option "5" for clean, single-line result display
+- ✅ **Help System** - Type `?` for comprehensive contextual help
+- ✅ **Enhanced Commands** - Additional slash commands (`/compact=on|off`)
 
 ## Current State Assessment
 
@@ -183,14 +220,20 @@ Use SQLite browser to inspect `Data/searchDB.db` after indexing.
 - Realistic test data (Enron dataset)
 - Proper inverted index implementation
 - Score-based ranking
+- Cross-platform support (Windows/macOS/Linux)
+- Enhanced statistics with word frequency
+- Case sensitivity control (`Config.CaseSensitive`)
+- Configurable result limits (`Config.ResultLimit`)
+- Timestamp display control (`Config.ViewTimeStamps`)
+- Pattern matching with wildcards (`Config.PatternSearch`)
+- Compact view for clean result display (`Config.CompactView`)
+- Interactive menu system for feature toggles
+- Comprehensive help system with contextual examples (accessible via `?`)
 
-### ⚠️ Areas Needing Work
-- Path configuration for Windows environment
+### ⚠️ Areas for Future Enhancement
 - No snippets in search results yet
 - No synonym dictionary support
-- No case sensitivity control
-- Fixed 10-result limit
-- No wildcard/pattern search
+- Could expand wildcard patterns beyond single/multiple character matching
 
 ### 🚫 School Project Constraints
 - Limited ability to edit certain files
@@ -208,16 +251,17 @@ The `assignments.md` file contains:
 - Detailed steps and requirements
 - What has been completed vs. what remains
 
-**Important**: When using `/init` command in Claude Code CLI, always read both `Claude.md` and `assignments.md` for complete project context.
+**Note**: All core assignments (1-6) have been implemented, plus additional user experience enhancements. The system now includes enhanced statistics, configurable search options, pattern matching capabilities, compact view display, and a comprehensive help system. See `assignments.md` for detailed implementation status.
 
-## Getting Started Checklist (Assignment 1)
+## Getting Started Checklist
 1. Verify .NET 9.0 installation
-2. Update `Shared\Paths.cs` database path for Windows
-3. Update `indexer\Config.cs` folder path to point to test data
-4. Install SQLite browser for database inspection
-5. Build solution and run indexer
-6. Test search functionality with various queries
-7. Choose assignment(s) to implement based on learning objectives
+2. ✅ Cross-platform paths already configured automatically
+3. Install SQLite browser for database inspection
+4. Build solution: `dotnet build SearchEngine.sln`
+5. Run indexer with dataset selection: `cd indexer && dotnet run medium`
+6. Test search functionality: `cd ConsoleSearch && dotnet run`
+7. Explore interactive menu features (case sensitivity, timestamps, result limits, pattern search, compact view)
+8. Try the help system by typing `?` to see all available options and examples
 
 ## Architecture Notes
 
@@ -229,7 +273,25 @@ The `assignments.md` file contains:
 - `Shared/Paths.cs` - Cross-platform database path configuration at Shared:7
 
 ### Search Algorithm Details
-The system implements a basic TF (term frequency) scoring model where each document's relevance score is calculated as the percentage of query terms found within it. The inverted index allows efficient lookup of documents containing specific terms, with results ranked by descending relevance score and limited to top 10.
+The system implements a basic TF (term frequency) scoring model where each document's relevance score is calculated as the percentage of query terms found within it. The inverted index allows efficient lookup of documents containing specific terms, with results ranked by descending relevance score and limited by the configurable result limit (default: 20).
 
 ### Configuration Dependencies
-Both applications depend on proper path configuration in `Shared/Paths.cs` and indexer folder setting in `indexer/Config.cs`. The path logic uses `RuntimeInformation` to detect the current platform and select appropriate file system paths.
+Both applications use automatic cross-platform configuration:
+- `Shared/Paths.cs` uses `RuntimeInformation` to detect platform and select appropriate database paths
+- `indexer/Config.cs` uses `RuntimeInformation` to select appropriate dataset folder paths
+- `ConsoleSearch/Config.cs` provides feature toggles for search behavior:
+  - `CaseSensitive` - Case-sensitive search matching
+  - `ViewTimeStamps` - Display document indexing timestamps  
+  - `ResultLimit` - Maximum results to display (int? - null = unlimited)
+  - `PatternSearch` - Wildcard pattern matching mode
+  - `CompactView` - Clean single-line result display format
+
+### Interactive Features
+The search console (`ConsoleSearch/App.cs`) provides an interactive menu system allowing users to toggle:
+1. **Case Sensitivity** - Enable/disable case-sensitive search
+2. **Timestamp Display** - Show/hide document timestamps in results
+3. **Result Limits** - Configure number of results (default 20, or "all")
+4. **Pattern Search** - Enable wildcard matching with `?` (single char) and `*` (multiple chars)
+5. **Compact View** - Clean display format removing long file paths, showing results as single lines
+
+**Enhanced Help System**: Users can type `?` (or option `6`) to access comprehensive contextual help showing current settings, examples, and available commands.
