@@ -5,205 +5,276 @@
 @inject HttpClient Http
 @inject IJSRuntime JSRuntime
 
-<PageTitle>Search Engine</PageTitle>
-
-<div class="container">
-    <h1>Search Engine</h1>
-
-    <div class="row mb-4">
-        <div class="col-md-8">
-            <div class="input-group">
-                <input type="text" @bind="searchQuery" @onkeypress="HandleKeyPress" class="form-control" placeholder="Enter search terms..." />
-                <button class="btn btn-primary" @onclick="PerformSearch" disabled="@isLoading">
-                    @if (isLoading)
-                    {
-                        <span class="spinner-border spinner-border-sm me-2"></span>
-                    }
-                    Search
-                </button>
-            </div>
+<div class="content-wrapper">
+    <!-- Search Section -->
+    <div class="search-section">
+        <h2 class="search-title">What would you like to search for?</h2>
+        
+        <!-- Search Input -->
+        <div class="search-input-container">
+            <span class="icon icon-search search-icon"></span>
+            <input type="text" 
+                   @bind="searchQuery" 
+                   @onkeyup="HandleKeyPress" 
+                   class="search-input" 
+                   placeholder="Search documents..." />
+            <button type="button" 
+                    class="search-button" 
+                    @onclick="PerformSearch" 
+                    disabled="@isLoading">
+                @if (isLoading)
+                {
+                    <div class="icon-spinner"></div>
+                }
+                Search
+            </button>
         </div>
-        <div class="col-md-4">
-            <div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" @bind="patternSearch" id="patternSearchSwitch">
-                <label class="form-check-label" for="patternSearchSwitch">
-                    Pattern Search (use * and ?)
-                </label>
+
+        <!-- Filter Buttons -->
+        <div class="filter-buttons">
+            <button type="button" 
+                    class="filter-button @(caseSensitive ? "active" : "")"
+                    @onclick="() => caseSensitive = !caseSensitive">
+                <span class="icon icon-hash icon-sm"></span>
+                Case Sensitive
+            </button>
+            
+            <button type="button" 
+                    class="filter-button @(patternSearch ? "active" : "")"
+                    @onclick="() => patternSearch = !patternSearch">
+                <span class="icon icon-pattern icon-sm"></span>
+                Pattern Search
+            </button>
+            
+            <button type="button" 
+                    class="filter-button @(compactView ? "active" : "")"
+                    @onclick="() => compactView = !compactView">
+                <span class="icon icon-eye icon-sm"></span>
+                Compact View
+            </button>
+            
+            <button type="button" 
+                    class="filter-button @(includeTimestamps ? "active" : "")"
+                    @onclick="() => includeTimestamps = !includeTimestamps">
+                <span class="icon icon-calendar icon-sm"></span>
+                Timestamps
+            </button>
+        </div>
+
+        <!-- Result Limit -->
+        <div class="result-limit-section">
+            <span class="icon icon-settings"></span>
+            <span>Results:</span>
+            
+            <div class="select-container">
+                <select @bind="resultLimitOption" class="select">
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                    <option value="150">150</option>
+                    <option value="200">200</option>
+                    <option value="custom">Custom</option>
+                </select>
             </div>
+
+            @if (resultLimitOption == "custom")
+            {
+                <input type="number" 
+                       @bind="customLimit" 
+                       class="custom-input" 
+                       placeholder="Enter limit" 
+                       min="1" 
+                       max="1000" />
+            }
         </div>
     </div>
 
-    <div class="row mb-3">
-        <div class="col-md-12">
-            <div class="d-flex gap-3">
-                <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" @bind="caseSensitive" id="caseSensitiveSwitch">
-                    <label class="form-check-label" for="caseSensitiveSwitch">Case Sensitive</label>
-                </div>
-                <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" @bind="includeTimestamps" id="timestampSwitch">
-                    <label class="form-check-label" for="timestampSwitch">Show Timestamps</label>
-                </div>
-                <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" @bind="compactView" id="compactViewSwitch">
-                    <label class="form-check-label" for="compactViewSwitch">Compact View</label>
-                </div>
-                <div class="input-group" style="width: 200px;">
-                    <span class="input-group-text">Limit</span>
-                    <input type="number" @bind="resultLimit" class="form-control" min="1" max="1000" />
-                </div>
-            </div>
-        </div>
-    </div>
-
+    <!-- Error Message -->
     @if (!string.IsNullOrEmpty(errorMessage))
     {
-        <div class="alert alert-danger">
-            @errorMessage
+        <div class="card" style="border-color: var(--destructive);">
+            <div class="card-content" style="color: var(--destructive);">
+                @errorMessage
+            </div>
         </div>
     }
 
-    @* Reworked results rendering: pattern search and normal search have independent conditions *@
-    @if (patternSearch)
+    <!-- Results -->
+    @if (!string.IsNullOrWhiteSpace(searchQuery))
     {
         <div class="results-section">
-            <h3>Pattern Search Results</h3>
+            <!-- Loading State -->
             @if (isLoading)
             {
-                <p><em>Searching...</em></p>
-            }
-            else if (patternResults != null && patternResults.Any())
-            {
-                <p>
-                    @if (patternMeta != null)
-                    {
-                        if (patternMeta.TotalDocuments == 0)
-                        {
-                            <text>No documents matched pattern "@lastSearchQuery"</text>
-                        }
-                        else if (patternMeta.IsTruncated)
-                        {
-                            <text>Found @patternMeta.TotalDocuments documents and @patternMeta.TotalHits hits (showing @patternMeta.ReturnedDocuments documents / @patternMeta.ReturnedHits hits due to limit) for pattern "@lastSearchQuery" in @patternMeta.TimeUsed.ToString("F2") ms</text>
-                        }
-                        else
-                        {
-                            <text>Found @patternMeta.ReturnedDocuments documents and @patternMeta.ReturnedHits hits for pattern "@lastSearchQuery" in @patternMeta.TimeUsed.ToString("F2") ms</text>
-                        }
-                    }
-                    else
-                    {
-                        var fallbackDocCount = patternResults.Count;
-                        // Approximate hits locally: distinct matching words per document summed (same logic as backend ordering metric)
-                        var fallbackHitCount = patternResults.Sum(r => r.MatchingWords.Distinct(StringComparer.OrdinalIgnoreCase).Count());
-                        <text>Found @fallbackDocCount documents and @fallbackHitCount hits matching pattern "@lastSearchQuery"</text>
-                    }
-                </p>
-                <div class="list-group">
-                    @foreach (var (result, index) in patternResults.Select((r, i) => (r, i + 1)))
-                    {
-                        @if (compactView)
-                        {
-                            <div class="list-group-item py-2">
-                                @{
-                                    var fileName = System.IO.Path.GetFileName(result.Document.Url);
-                                    var matchText = result.MatchingWords.Count == 1 ? "match" : "matches";
-                                }
-                                <span>@index. @fileName (@result.MatchingWords.Count @matchText): @string.Join(", ", result.MatchingWords)</span>
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="list-group-item">
-                                <div class="d-flex w-100 justify-content-between">
-                                    <h5 class="mb-1">@index. @System.IO.Path.GetFileName(result.Document.Url)</h5>
-                                    <small>@result.MatchingWords.Count match(es)</small>
-                                </div>
-                                <p class="mb-1">
-                                    <strong>File:</strong> @result.Document.Url<br />
-                                    <strong>Matching terms:</strong> @string.Join(", ", result.MatchingWords)
-                                </p>
-                                @if (includeTimestamps && !string.IsNullOrEmpty(result.Document.IndexTime))
-                                {
-                                    <small>Indexed: @result.Document.IndexTime</small>
-                                }
-                            </div>
-                        }
-                    }
-                </div>
-            }
-            else if (!isLoading && patternResults != null && !patternResults.Any())
-            {
-                <div class="alert alert-info">No documents matched the pattern "@lastSearchQuery".</div>
-            }
-        </div>
-    }
-    else if (searchResults != null)
-    {
-        <div class="results-section">
-            <h3>Search Results</h3>
-            <p>
-                @if (searchResults.IsTruncated)
-                {
-                    <text>Found @searchResults.TotalDocuments documents and @searchResults.TotalHits hits (showing @searchResults.ReturnedDocuments documents / @searchResults.ReturnedHits hits due to limit) in @searchResults.TimeUsed.ToString("F2") ms</text>
-                }
-                else
-                {
-                    <text>Found @searchResults.ReturnedDocuments documents and @searchResults.ReturnedHits hits in @searchResults.TimeUsed.ToString("F2") ms</text>
-                }
-            </p>
-            @if (searchResults.Ignored?.Any() == true)
-            {
-                <div class="alert alert-warning">
-                    <strong>Ignored terms:</strong> @string.Join(", ", searchResults.Ignored)
-                </div>
-            }
-            @if (searchResults.DocumentHits?.Any() == true)
-            {
-                <div class="list-group">
-                    @foreach (var (result, index) in searchResults.DocumentHits.Select((r, i) => (r, i + 1)))
-                    {
-                        @if (compactView)
-                        {
-                            <div class="list-group-item py-2">
-                                @{
-                                    var fileName = System.IO.Path.GetFileName(result.Document.Url);
-                                    var hitText = result.NoOfHits == 1 ? "match" : "matches";
-                                    var allTerms = searchResults.Query.ToList();
-                                    var matchingTerms = allTerms.Except(result.Missing ?? new List<string>()).ToArray();
-                                }
-                                <span>@index. @fileName (@result.NoOfHits @hitText): @string.Join(", ", matchingTerms)</span>
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="list-group-item">
-                                <div class="d-flex w-100 justify-content-between">
-                                    <h5 class="mb-1">@index. @System.IO.Path.GetFileName(result.Document.Url)</h5>
-                                    <small>@result.NoOfHits hit(s)</small>
-                                </div>
-                                <p class="mb-1"><strong>File:</strong> @result.Document.Url</p>
-                                @if (includeTimestamps && !string.IsNullOrEmpty(result.Document.IndexTime))
-                                {
-                                    <small>Indexed: @result.Document.IndexTime</small>
-                                }
-                                @if (result.Missing?.Any() == true)
-                                {
-                                    <small class="text-muted d-block">Missing terms: @string.Join(", ", result.Missing)</small>
-                                }
-                            </div>
-                        }
-                    }
+                <div class="loading">
+                    <div class="icon-spinner"></div>
+                    Searching...
                 </div>
             }
             else
             {
-                <div class="alert alert-info">No documents found matching your search terms.</div>
+                <!-- Pattern Search Results -->
+                @if (patternSearch && patternResults != null)
+                {
+                    <!-- Results Header -->
+                    <div class="results-header">
+                        <div class="results-count">
+                            @if (patternMeta != null)
+                            {
+                                if (patternMeta.TotalDocuments == 0)
+                                {
+                                    <text>No documents matched pattern "@lastSearchQuery"</text>
+                                }
+                                else if (patternMeta.IsTruncated)
+                                {
+                                    <text>@patternMeta.ReturnedDocuments of @patternMeta.TotalDocuments documents for "@lastSearchQuery" (@patternMeta.TimeUsed.ToString("F1")ms)</text>
+                                }
+                                else
+                                {
+                                    <text>@patternMeta.ReturnedDocuments documents for "@lastSearchQuery" (@patternMeta.TimeUsed.ToString("F1")ms)</text>
+                                }
+                            }
+                            else
+                            {
+                                <text>@patternResults.Count results for "@lastSearchQuery"</text>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Pattern Results List -->
+                    <div class="results-list">
+                        @foreach (var (result, index) in patternResults.Select((r, i) => (r, i + 1)))
+                        {
+                            <div class="card">
+                                <div class="card-header @(compactView ? "compact clickable" : "")" @onclick="@(compactView ? () => ToggleExpanded($"pattern_{result.Document.Id}_{index}") : null)">
+                                    <div class="card-title-row">
+                                        <h3 class="card-title">@index. @System.IO.Path.GetFileName(result.Document.Url)</h3>
+                                        <div class="card-meta">
+                                            <span class="badge">@result.MatchingWords.Count match@(result.MatchingWords.Count == 1 ? "" : "es")</span>
+                                            @if (includeTimestamps && !string.IsNullOrEmpty(result.Document.IndexTime))
+                                            {
+                                                <small style="color: var(--muted-foreground); font-size: 12px;">
+                                                    @DateTime.Parse(result.Document.IndexTime).ToString("MMM d")
+                                                </small>
+                                            }
+                                            @if (compactView)
+                                            {
+                                                <span class="expand-icon">@(IsExpanded($"pattern_{result.Document.Id}_{index}") ? "▼" : "▶")</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                @if (!compactView || IsExpanded($"pattern_{result.Document.Id}_{index}"))
+                                {
+                                    <div class="card-content">
+                                        <div class="card-text">
+                                            <strong>File:</strong> @result.Document.Url<br />
+                                            <strong>Matching terms:</strong> @string.Join(", ", result.MatchingWords)
+                                        </div>
+                                        @if (includeTimestamps && !string.IsNullOrEmpty(result.Document.IndexTime))
+                                        {
+                                            <div class="card-timestamp">
+                                                Indexed: @DateTime.Parse(result.Document.IndexTime).ToString("MMM d, yyyy 'at' h:mm tt")
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+                <!-- Normal Search Results -->
+                else if (!patternSearch && searchResults != null)
+                {
+                    <!-- Results Header -->
+                    <div class="results-header">
+                        <div class="results-count">
+                            @if (searchResults.IsTruncated)
+                            {
+                                <text>@searchResults.ReturnedDocuments of @searchResults.TotalDocuments documents for "@string.Join(" ", searchResults.Query)" (@searchResults.TimeUsed.ToString("F1")ms)</text>
+                            }
+                            else
+                            {
+                                <text>@searchResults.ReturnedDocuments documents for "@string.Join(" ", searchResults.Query)" (@searchResults.TimeUsed.ToString("F1")ms)</text>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Ignored Terms -->
+                    @if (searchResults.Ignored?.Any() == true)
+                    {
+                        <div class="card" style="border-color: rgba(234, 88, 12, 0.3); background-color: rgba(234, 88, 12, 0.05);">
+                            <div class="card-content">
+                                <strong>Ignored terms:</strong> @string.Join(", ", searchResults.Ignored)
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Normal Results List -->
+                    <div class="results-list">
+                        @foreach (var (result, index) in searchResults.DocumentHits.Select((r, i) => (r, i + 1)))
+                        {
+                            <div class="card">
+                                <div class="card-header @(compactView ? "compact clickable" : "")" @onclick="@(compactView ? () => ToggleExpanded($"normal_{result.Document.Id}_{index}") : null)">
+                                    <div class="card-title-row">
+                                        <h3 class="card-title">@index. @System.IO.Path.GetFileName(result.Document.Url)</h3>
+                                        <div class="card-meta">
+                                            <span class="badge">@result.NoOfHits hit@(result.NoOfHits == 1 ? "" : "s")</span>
+                                            @if (includeTimestamps && !string.IsNullOrEmpty(result.Document.IndexTime))
+                                            {
+                                                <small style="color: var(--muted-foreground); font-size: 12px;">
+                                                    @DateTime.Parse(result.Document.IndexTime).ToString("MMM d")
+                                                </small>
+                                            }
+                                            @if (compactView)
+                                            {
+                                                <span class="expand-icon">@(IsExpanded($"normal_{result.Document.Id}_{index}") ? "▼" : "▶")</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                @if (!compactView || IsExpanded($"normal_{result.Document.Id}_{index}"))
+                                {
+                                    <div class="card-content">
+                                        <div class="card-text">
+                                            <strong>File:</strong> @result.Document.Url
+                                        </div>
+                                        @if (includeTimestamps && !string.IsNullOrEmpty(result.Document.IndexTime))
+                                        {
+                                            <div class="card-timestamp">
+                                                Indexed: @DateTime.Parse(result.Document.IndexTime).ToString("MMM d, yyyy 'at' h:mm tt")
+                                            </div>
+                                        }
+                                        @if (result.Missing?.Any() == true)
+                                        {
+                                            <div class="card-timestamp">
+                                                Missing terms: @string.Join(", ", result.Missing)
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+                <!-- Empty State -->
+                else
+                {
+                    <div class="empty-state">
+                        <div class="icon icon-search empty-icon"></div>
+                        <div class="empty-title">No results found</div>
+                        <div class="empty-description">Try adjusting your search terms or filters</div>
+                    </div>
+                }
             }
         </div>
     }
 </div>
 
 @code {
+    // Search state
     private string searchQuery = "";
     private bool isLoading = false;
     private string errorMessage = "";
@@ -212,14 +283,22 @@
     // Search options
     private bool caseSensitive = false;
     private bool includeTimestamps = true;
-    private int resultLimit = 20;
     private bool patternSearch = false;
     private bool compactView = false;
+    
+    // Expandable items tracking
+    private Dictionary<string, bool> expandedItems = new();
+    
+    // Result limit
+    private string resultLimitOption = "20";
+    private int customLimit = 50;
+    
+    private int ResultLimit => resultLimitOption == "custom" ? customLimit : int.Parse(resultLimitOption);
 
     // Results
     private SearchResult? searchResults = null;
     private List<PatternResult>? patternResults = null;
-        private PatternMeta? patternMeta = null;
+    private PatternMeta? patternMeta = null;
 
     private async Task HandleKeyPress(KeyboardEventArgs e)
     {
@@ -244,17 +323,13 @@
             
             if (patternSearch)
             {
-                var patternUrl = $"{baseUrl}/pattern?pattern={lastSearchQuery}&caseSensitive={caseSensitive}&limit={resultLimit}";
-                Console.WriteLine($"DEBUG PATTERN: searchQuery='{searchQuery}', lastSearchQuery='{lastSearchQuery}', patternUrl='{patternUrl}'");
+                var patternUrl = $"{baseUrl}/pattern?pattern={Uri.EscapeDataString(lastSearchQuery)}&caseSensitive={caseSensitive}&limit={ResultLimit}";
                 var patternResponse = await Http.GetAsync(patternUrl);
                 
                 if (patternResponse.IsSuccessStatusCode)
                 {
                     var json = await patternResponse.Content.ReadAsStringAsync();
-                    Console.WriteLine($"BLAZOR DEBUG: Pattern response JSON: {json}");
-                    
                     var apiResponse = JsonSerializer.Deserialize<PatternSearchResponse>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                    Console.WriteLine($"BLAZOR DEBUG: Deserialized response - Hits count: {apiResponse?.Hits?.Count ?? 0}");
                     
                     patternResults = apiResponse?.Hits?.Select(hit => new PatternResult
                     {
@@ -267,18 +342,25 @@
                         },
                         MatchingWords = hit.MatchingWords
                     }).ToList() ?? new List<PatternResult>();
-                        if (apiResponse != null)
-                        {
-                            patternMeta = new PatternMeta { TotalDocuments = apiResponse.TotalDocuments, ReturnedDocuments = apiResponse.ReturnedDocuments, TotalHits = apiResponse.TotalHits, ReturnedHits = apiResponse.ReturnedHits, IsTruncated = apiResponse.IsTruncated, TimeUsed = apiResponse.TimeUsed };
-                        }
-                        else
-                        {
-                            patternMeta = null;
-                        }
                     
-                    Console.WriteLine($"BLAZOR DEBUG: Final patternResults count: {patternResults.Count}");
+                    if (apiResponse != null)
+                    {
+                        patternMeta = new PatternMeta { 
+                            TotalDocuments = apiResponse.TotalDocuments, 
+                            ReturnedDocuments = apiResponse.ReturnedDocuments, 
+                            TotalHits = apiResponse.TotalHits, 
+                            ReturnedHits = apiResponse.ReturnedHits, 
+                            IsTruncated = apiResponse.IsTruncated, 
+                            TimeUsed = apiResponse.TimeUsed 
+                        };
+                    }
+                    else
+                    {
+                        patternMeta = null;
+                    }
+                    
                     searchResults = null;
-                    StateHasChanged(); // Force UI update
+                    StateHasChanged();
                 }
                 else
                 {
@@ -287,7 +369,7 @@
             }
             else
             {
-                var searchUrl = $"{baseUrl}?query={Uri.EscapeDataString(lastSearchQuery)}&caseSensitive={caseSensitive}&limit={resultLimit}&includeTimestamps={includeTimestamps}";
+                var searchUrl = $"{baseUrl}?query={Uri.EscapeDataString(lastSearchQuery)}&caseSensitive={caseSensitive}&limit={ResultLimit}&includeTimestamps={includeTimestamps}";
                 var response = await Http.GetAsync(searchUrl);
                 
                 if (response.IsSuccessStatusCode)
@@ -320,7 +402,7 @@
                     };
                     
                     patternResults = null;
-                              patternMeta = null;
+                    patternMeta = null;
                 }
                 else
                 {
@@ -330,8 +412,6 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"BLAZOR DEBUG: Exception occurred: {ex.Message}");
-            Console.WriteLine($"BLAZOR DEBUG: Stack trace: {ex.StackTrace}");
             errorMessage = $"Error: {ex.Message}";
         }
         finally
@@ -340,7 +420,25 @@
         }
     }
 
-    // Data models for Blazor
+    // Expandable items functionality
+    private void ToggleExpanded(string key)
+    {
+        if (expandedItems.ContainsKey(key))
+        {
+            expandedItems[key] = !expandedItems[key];
+        }
+        else
+        {
+            expandedItems[key] = true;
+        }
+    }
+    
+    private bool IsExpanded(string key)
+    {
+        return expandedItems.TryGetValue(key, out var isExpanded) && isExpanded;
+    }
+
+    // Data models for Blazor (same as original)
     public class SearchResult
     {
         public string[] Query { get; set; } = Array.Empty<string>();
@@ -375,7 +473,7 @@
         public string CreationTime { get; set; } = "";
     }
 
-    // API response models
+    // API response models (same as original)
     public class ApiSearchResponse
     {
         public string[] Query { get; set; } = Array.Empty<string>();
@@ -400,7 +498,6 @@
     {
         public string Pattern { get; set; } = "";
         public List<PatternHit> Hits { get; set; } = new();
-        // Added metadata fields from API
         public int TotalDocuments { get; set; }
         public int ReturnedDocuments { get; set; }
         public bool IsTruncated { get; set; }

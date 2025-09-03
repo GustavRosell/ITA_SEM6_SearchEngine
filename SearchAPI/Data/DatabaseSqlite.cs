@@ -5,7 +5,7 @@ using Shared;
 using Shared.Model;
 using Microsoft.Data.Sqlite;
 
-namespace SearchAPI
+namespace SearchAPI.Data
 {
     public class DatabaseSqlite : IDatabase
     {

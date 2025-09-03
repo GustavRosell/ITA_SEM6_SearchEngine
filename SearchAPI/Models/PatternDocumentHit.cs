@@ -1,7 +1,7 @@
 using Shared.Model;
 using System.Collections.Generic;
 
-namespace SearchAPI
+namespace SearchAPI.Models
 {
     public class PatternDocumentHit
     {

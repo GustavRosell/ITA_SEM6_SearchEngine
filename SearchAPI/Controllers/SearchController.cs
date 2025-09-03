@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using SearchAPI.Data;
 
 namespace SearchAPI.Controllers
 {
@@ -73,10 +74,7 @@ namespace SearchAPI.Controllers
 
             try
             {
-                Console.WriteLine($"API DEBUG PATTERN: pattern='{pattern}', caseSensitive={caseSensitive}, limit={limit}");
                 var result = _searchLogic.PatternSearch(pattern, limit, caseSensitive);
-                
-                Console.WriteLine($"API DEBUG RESPONSE: Returning {result.Hits.Count} hits for pattern search");
                 
                 return Ok(new
                 {

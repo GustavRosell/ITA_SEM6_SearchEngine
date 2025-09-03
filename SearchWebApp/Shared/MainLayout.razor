@@ -1,19 +1,43 @@
 ﻿@inherits LayoutComponentBase
 
-<PageTitle>SearchWebApp</PageTitle>
+<PageTitle>Search Engine</PageTitle>
 
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
+<div class="app-container">
+    <!-- Collapsible Sidebar -->
+    <div class="sidebar @(sidebarClosed ? "closed" : "")">
+        <div class="sidebar-content">
+            <nav class="sidebar-nav">
+                <a href="/search" class="sidebar-nav-item">
+                    <span class="icon icon-search"></span>
+                    Search Engine
+                </a>
+            </nav>
+        </div>
     </div>
 
-    <main>
-        <div class="top-row px-4">
-            <a href="https://docs.microsoft.com/aspnet/" target="_blank">About</a>
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Top Bar with Menu Toggle -->
+        <div class="top-bar">
+            <button class="btn-ghost" @onclick="ToggleSidebar" title="Toggle sidebar">
+                <span class="icon icon-menu"></span>
+                <span class="sr-only">Toggle sidebar</span>
+            </button>
+            <h1 class="text-lg font-medium">Search Engine</h1>
         </div>
 
-        <article class="content px-4">
+        <!-- Content Area -->
+        <div class="content-area">
             @Body
-        </article>
-    </main>
+        </div>
+    </div>
 </div>
+
+@code {
+    private bool sidebarClosed = true; // Start with sidebar closed like Claude
+
+    private void ToggleSidebar()
+    {
+        sidebarClosed = !sidebarClosed;
+    }
+}

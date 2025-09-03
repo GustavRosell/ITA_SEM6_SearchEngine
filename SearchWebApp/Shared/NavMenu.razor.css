@@ -4,7 +4,9 @@
 
 .top-row {
     height: 3.5rem;
-    background-color: rgba(0,0,0,0.4);
+    background: var(--sidebar) !important;
+    background-color: var(--sidebar) !important;
+    border-bottom: 1px solid var(--sidebar-border, var(--border));
 }
 
 .navbar-brand {
@@ -64,5 +66,19 @@
         /* Allow sidebar to scroll for tall menus */
         height: calc(100vh - 3.5rem);
         overflow-y: auto;
+        background: var(--sidebar) !important;
+        background-color: var(--sidebar) !important;
     }
+}
+
+/* Nav title styling (optional) */
+.nav-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    padding: 0.75rem 1rem 0.5rem;
+    margin: 0 0 0.75rem;
+    color: var(--muted-foreground);
+    border-bottom: 1px solid var(--sidebar-border, var(--border));
 }

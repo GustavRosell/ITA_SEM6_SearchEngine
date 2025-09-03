@@ -6,7 +6,10 @@
       "Bash(dotnet add reference:*)",
       "Bash(dotnet add package:*)",
       "Bash(dotnet build)",
-      "Bash(dotnet build:*)"
+      "Bash(dotnet build:*)",
+      "Bash(move:*)",
+      "Bash(timeout:*)",
+      "Bash(dotnet run:*)"
     ],
     "deny": [],
     "ask": []

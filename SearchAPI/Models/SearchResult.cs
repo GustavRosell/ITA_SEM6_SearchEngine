@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using Shared.Model;
 
-namespace SearchAPI
+namespace SearchAPI.Models
 {
     /*
      * A data class representing the result of a search.

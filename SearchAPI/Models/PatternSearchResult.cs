@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace SearchAPI
+namespace SearchAPI.Models
 {
     public class PatternSearchResult
     {

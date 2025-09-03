@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using Shared.Model;
 
-namespace SearchAPI
+namespace SearchAPI.Models
 {
     public class DocumentHit
     {
