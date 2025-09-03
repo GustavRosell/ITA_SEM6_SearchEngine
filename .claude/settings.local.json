@@ -9,7 +9,9 @@
       "Bash(dotnet build:*)",
       "Bash(move:*)",
       "Bash(timeout:*)",
-      "Bash(dotnet run:*)"
+      "Bash(dotnet run:*)",
+      "Bash(taskkill:*)",
+      "Bash(cmd /c:*)"
     ],
     "deny": [],
     "ask": []

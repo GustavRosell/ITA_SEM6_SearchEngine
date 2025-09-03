@@ -113,7 +113,7 @@ score = (number_of_matching_terms / total_query_terms)
 - **Responsive design**: Mobile-friendly layout
 
 **API Integration**:
-- Consumes SearchAPI endpoints at `localhost:5137`
+- Consumes SearchAPI endpoints at `localhost:5137` (default API port)
 - Real-time search with loading states
 - Error handling with user-friendly messages
 - Proper HTTP client configuration
@@ -231,6 +231,29 @@ dotnet restore
 ### Database Inspection
 Use SQLite browser to inspect `Data/searchDB.db` after indexing.
 
+**Database Location**: SQLite database is automatically created at:
+- **Windows**: `Data/searchDB.db` in the project root
+- **Cross-platform**: Uses `Shared/Paths.cs` for automatic platform detection
+
+### Default Ports & Configuration
+- **SearchAPI**: `http://localhost:5137` (REST API endpoints)
+- **SearchWebApp**: `http://localhost:5000` or `https://localhost:5001` (Blazor Server UI)
+- **Database**: SQLite file-based (no server required)
+
+### Search Result Ordering Logic
+**Regular Search** (SQL-based in DatabaseSqlite.cs):
+```sql
+ORDER BY count DESC, docId ASC
+```
+
+**Pattern Search** (C#-based in SearchLogic.cs):
+```csharp
+OrderByDescending(x => x.Words.Count)
+.ThenBy(x => GetFilenameNumber(docMap[x.DocId]))
+```
+- Primary sort: Number of matching terms (descending)
+- Secondary sort: Filename number extracted from document path (ascending)
+
 ### Manual Testing Approach
 **No formal test framework** - this project uses manual testing with realistic datasets:
 - **Small dataset**: 13 emails for functional verification
@@ -316,9 +339,19 @@ Use SQLite browser to inspect `Data/searchDB.db` after indexing.
   - Timestamp display control
   - Pattern matching with wildcards (`?` and `*`)
   - Compact view with expandable results
+  - **Fixed search result ordering**: Pattern search now orders by filename number instead of database ID
 - **Multiple interfaces**: Console, API, and Web UI all fully functional
 - **Interactive features**: Toggle-based configuration, contextual help system
 - **Professional UI/UX**: Claude.ai color scheme, responsive design, loading states
+- **Performance optimized**: Typical search response times ~20-25ms for pattern searches
+
+### 🔧 Recent Bug Fixes & Improvements
+- **Pattern Search Ordering Bug Fixed** (SearchLogic.cs:148): Added `GetFilenameNumber()` method to extract numeric part from filenames and ensure proper ordering (15, 101, 126, 143... instead of chaotic database ID ordering)
+- **Home Page Simplified**: Changed from corporate messaging to friendly "Find documents quickly and easily" with "Try Me" button
+- **Debug Output Cleaned**: Removed all Console.WriteLine debug statements from SearchAPI for clean production output
+- **Timestamp Formatting**: Switched to Danish 24-hour format and removed duplicate timestamp displays
+- **Zero Warnings Achievement**: Fixed all nullable reference type warnings across the solution
+- **File Organization**: Moved SearchLogic to Services folder for better MVC structure
 
 ### ⚠️ Areas for Future Enhancement
 - No snippets in search results yet
