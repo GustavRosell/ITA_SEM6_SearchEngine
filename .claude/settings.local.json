@@ -11,7 +11,19 @@
       "Bash(timeout:*)",
       "Bash(dotnet run:*)",
       "Bash(taskkill:*)",
-      "Bash(cmd /c:*)"
+      "Bash(cmd /c:*)",
+      "Read(/C:\\Users\\Gusta\\OneDrive\\Dokumenter\\GitHub\\SearchEngine-main\\SearchWebApp\\Shared/**)",
+      "Read(/C:\\Users\\Gusta\\OneDrive\\Dokumenter\\GitHub\\SearchEngine-main\\SearchWebApp\\wwwroot\\css/**)",
+      "Read(/C:\\Users\\Gusta\\OneDrive\\Dokumenter\\GitHub\\SearchEngine-main\\SearchAPI\\Controllers/**)",
+      "Read(/C:\\Users\\Gusta\\OneDrive\\Dokumenter\\GitHub\\SearchEngine-main\\SearchAPI\\Services/**)",
+      "Read(/C:\\Users\\Gusta\\OneDrive\\Dokumenter\\GitHub\\SearchEngine-main\\Shared/**)",
+      "Read(/C:\\Users\\Gusta\\OneDrive\\Dokumenter\\GitHub\\SearchEngine-main\\SearchAPI\\Models/**)",
+      "Read(/C:\\Users\\Gusta\\OneDrive\\Dokumenter\\GitHub\\SearchEngine-main\\Shared\\Model/**)",
+      "Read(/C:\\Users\\Gusta\\OneDrive\\Dokumenter\\GitHub\\SearchEngine-main\\ConsoleSearch/**)",
+      "Read(/C:\\Users\\Gusta\\OneDrive\\Dokumenter\\GitHub\\SearchEngine-main\\SearchWebApp/**)",
+      "Read(/C:\\Users\\Gusta\\OneDrive\\Dokumenter\\GitHub\\SearchEngine-main\\SearchWebApp\\Pages/**)",
+      "Read(/C:\\Users\\Gusta\\OneDrive\\Dokumenter\\GitHub\\SearchEngine-main\\SearchAPI\\Data/**)",
+      "Read(/C:\\Users\\Gusta\\OneDrive\\Dokumenter\\GitHub\\SearchEngine-main\\SearchAPI\\Data/**)"
     ],
     "deny": [],
     "ask": []

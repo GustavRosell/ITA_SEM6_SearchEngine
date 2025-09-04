@@ -687,6 +687,19 @@ div.nav-scrollable,
 }
 
 /* Utility classes */
+.text-lg {
+  font-size: 18px;
+  user-select: none; /* Prevent text selection */
+  -webkit-user-select: none; /* Safari */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* IE/Edge */
+  pointer-events: none; /* Prevent dragging */
+}
+
+.font-medium {
+  font-weight: 500;
+}
+
 .hidden {
   display: none !important;
 }
