@@ -69,6 +69,7 @@ namespace ConsoleSearch
                 if (Config.PatternSearch)
                 {
                     var patternResult = apiClient.PatternSearchAsync(input, Config.CaseSensitive, Config.ResultLimit).Result;
+                    Console.WriteLine($"[Instance: {patternResult.InstanceId}]");
                     Console.WriteLine("Pattern Search Results:");
                     int patternIdx = 1;
                     foreach (var hit in patternResult.Hits)
@@ -107,6 +108,8 @@ namespace ConsoleSearch
                 {
                     var query = input.Split(" ", StringSplitOptions.RemoveEmptyEntries);
                     var searchResult = apiClient.SearchAsync(query, Config.CaseSensitive, Config.ResultLimit, Config.ViewTimeStamps).Result;
+
+                    Console.WriteLine($"[Instance: {searchResult.InstanceId}]");
 
                     if (searchResult.Ignored.Count > 0)
                     {

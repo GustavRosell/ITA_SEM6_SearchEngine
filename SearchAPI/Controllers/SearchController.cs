@@ -20,14 +20,17 @@ namespace SearchAPI.Controllers
     public class SearchController : ControllerBase
     {
         private readonly SearchLogic _searchLogic;
+        private readonly string _instanceId;
 
         /// <summary>
         /// Initialize SearchController with database dependency
         /// Uses SQLite database with inverted index for fast document retrieval
+        /// Reads INSTANCE_ID from environment variable for X-Scale load balancing identification
         /// </summary>
         public SearchController()
         {
             _searchLogic = new SearchLogic(new DatabaseSqlite());
+            _instanceId = Environment.GetEnvironmentVariable("INSTANCE_ID") ?? "API-Default";
         }
 
         /// <summary>
@@ -78,9 +81,10 @@ namespace SearchAPI.Controllers
                 // Perform search using inverted index and TF scoring
                 var result = _searchLogic.Search(queryArray, limit, caseSensitive);
                 
-                // Return standardized JSON response format
+                // Return standardized JSON response format with instance ID for load balancing visibility
                 return Ok(new
                 {
+                    instanceId = _instanceId,
                     query = result.Query,
                     totalDocuments = result.TotalDocuments,
                     returnedDocuments = result.ReturnedDocuments.Count,
@@ -155,9 +159,10 @@ namespace SearchAPI.Controllers
                 // Perform pattern search with wildcard support
                 var result = _searchLogic.PatternSearch(pattern, limit, caseSensitive);
                 
-                // Return standardized JSON response format
+                // Return standardized JSON response format with instance ID for load balancing visibility
                 return Ok(new
                 {
+                    instanceId = _instanceId,
                     pattern,
                     totalDocuments = result.TotalDocuments,
                     returnedDocuments = result.ReturnedDocuments,
@@ -183,6 +188,27 @@ namespace SearchAPI.Controllers
                 // Return proper HTTP 500 error with message
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
+        }
+
+        /// <summary>
+        /// Health check endpoint for load balancer monitoring
+        ///
+        /// Returns the instance ID and status to verify which backend is responding.
+        /// Useful for monitoring load balancer distribution and instance health.
+        /// </summary>
+        /// <returns>
+        /// JSON response with instance ID and status
+        /// </returns>
+        /// <response code="200">Instance is healthy and ready to serve requests</response>
+        [HttpGet("health")]
+        public IActionResult Health()
+        {
+            return Ok(new
+            {
+                instanceId = _instanceId,
+                status = "healthy",
+                timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss UTC")
+            });
         }
     }
 }

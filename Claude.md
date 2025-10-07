@@ -9,20 +9,31 @@ This is a **Proof of Concept (PoC) Search Engine** for IT-Architecture semester 
 
 **Important Note**: This is a school project with restrictions on file modifications and creation. Not all files may be editable, and the simplicity is intentional for educational purposes.
 
+**Documentation**: See `/documentation/` folder for detailed module-by-module implementation history and `documentation/quick-start.md` for deployment commands.
+
 ## Architecture & Components
 
-### Solution Structure (Y-Scaled Architecture)
+### Solution Structure (AKF Scale Cube Architecture)
 - **`indexer`** - Console application that crawls and indexes documents
 - **`ConsoleSearch`** - Console application providing interactive search interface
-- **`SearchAPI`** - ASP.NET Core Web API providing RESTful search endpoints (Y-Scale component)
+- **`SearchAPI`** - ASP.NET Core Web API providing RESTful search endpoints (Y-Scale component, X-Scale ready)
 - **`SearchWebApp`** - Blazor Server web application with Claude.ai-inspired UI
 - **`Shared`** - Class library containing common models and configuration
+- **`nginx/`** - Load balancer configurations (round-robin + sticky sessions) ✅ **NEW**
+- **`scripts/`** - Automated deployment scripts for multi-instance setup ✅ **NEW**
+- **`documentation/`** - Module-by-module implementation documentation ✅ **NEW**
+
+**Scaling Dimensions Implemented:**
+- ✅ **Y-Axis (Functional Decomposition)**: Separate API service for search logic
+- ✅ **X-Axis (Horizontal Duplication)**: Multiple identical API instances with nginx load balancing
+- 🔄 **Z-Axis (Data Partitioning)**: Planned for Module 7
 
 ### Technology Stack
 - **.NET 9.0** C# applications (console, API, and web)
 - **ASP.NET Core Web API** for search service layer
 - **Blazor Server** for modern web UI
 - **SQLite database** for inverted index storage
+- **nginx** for load balancing and horizontal scaling ✅ **NEW**
 - **Microsoft.Data.Sqlite** NuGet package (version 8.0.1)
 - **Microsoft.AspNetCore.OpenApi** for API documentation
 
@@ -218,6 +229,126 @@ cd SearchAPI && dotnet run
 cd SearchWebApp && dotnet run
 ```
 
+#### 4. X-Scale Load Balancing (AKF Scale Cube - Horizontal Scaling) ✅ **NEW**
+Demonstrates horizontal scaling by running multiple identical API instances behind an nginx load balancer.
+
+**Prerequisites:**
+```bash
+# Install nginx (macOS)
+brew install nginx
+```
+
+**Quick Start with Scripts:**
+```bash
+# Step 1: Start 3 SearchAPI instances (ports 5137, 5138, 5139)
+scripts/start-api-instances.sh
+
+# Step 2: Start nginx load balancer (port 8080)
+# Option A: Round-robin (requests distributed evenly)
+scripts/start-nginx.sh
+
+# Option B: Sticky sessions (same client → same instance)
+scripts/start-nginx-sticky.sh
+
+# Step 3: Run clients - they automatically connect to load balancer
+# Console Search
+cd ConsoleSearch && dotnet run
+
+# Web App (in separate terminal)
+cd SearchWebApp && dotnet run
+
+# Step 4: Stop all services when done
+scripts/stop-all.sh
+```
+
+**Manual Startup (Alternative):**
+```bash
+# Terminal 1: API Instance 1 (API-1)
+cd SearchAPI && dotnet run --launch-profile http
+
+# Terminal 2: API Instance 2 (API-2)
+cd SearchAPI && dotnet run --launch-profile http2
+
+# Terminal 3: API Instance 3 (API-3)
+cd SearchAPI && dotnet run --launch-profile http3
+
+# Terminal 4: nginx load balancer
+# Round-robin:
+nginx -c $(pwd)/nginx/nginx.conf -p $(pwd)/nginx
+# OR Sticky sessions:
+nginx -c $(pwd)/nginx/nginx-sticky.conf -p $(pwd)/nginx
+
+# Terminal 5: Web App or Console Search
+cd SearchWebApp && dotnet run
+# OR
+cd ConsoleSearch && dotnet run
+```
+
+**Verifying Load Balancing:**
+- **Web App**: Watch the orange watermark in top-right corner showing "Instance: API-1/2/3"
+- **Console Search**: Each search displays `[Instance: API-X]` in the output
+- **API Direct Test**: `curl http://localhost:8080/api/search?query=test` - run multiple times to see different instanceId values
+- **nginx Health Check**: `curl http://localhost:8080/health`
+
+**Load Balancing Strategies:**
+1. **Round-robin** (`nginx/nginx.conf`): Distributes requests evenly across all healthy backends
+2. **Sticky sessions** (`nginx/nginx-sticky.conf`): Same client IP always routed to same backend (ip_hash)
+
+**Three Deployment Modes:**
+1. **Single Instance** (Development):
+   ```bash
+   # Set environment variable for single instance mode
+   export API_BASE_URL=http://localhost:5137  # ConsoleSearch
+   # OR edit appsettings.json: "ApiSettings:BaseUrl": "http://localhost:5137"  # SearchWebApp
+   cd SearchAPI && dotnet run
+   ```
+
+2. **X-Scale Round-Robin** (Production-like):
+   ```bash
+   scripts/start-api-instances.sh
+   scripts/start-nginx.sh  # Round-robin
+   # Clients use default: http://localhost:8080
+   ```
+
+3. **X-Scale Sticky Sessions** (Session Affinity):
+   ```bash
+   scripts/start-api-instances.sh
+   scripts/start-nginx-sticky.sh  # Sticky sessions
+   # Same client always hits same instance
+   ```
+
+**Architecture Benefits:**
+- ✅ **Horizontal scalability**: Add more instances to handle increased load
+- ✅ **High availability**: If one instance fails, others continue serving requests
+- ✅ **Zero-downtime deployment**: Update instances one at a time
+- ✅ **Real-world pattern**: Industry-standard load balancing with nginx
+- ✅ **Flexible configuration**: Easy switch between single/multi-instance modes
+
+---
+
+## Three Deployment Modes
+
+The system supports three distinct deployment configurations. See `documentation/quick-start.md` for exact commands.
+
+### 1. Single Instance (Development Mode)
+**Use Case**: Local development, debugging, testing
+**Setup**: Single SearchAPI instance, direct client connection
+**Configuration**: Set `API_BASE_URL=http://localhost:5137` environment variable
+
+### 2. Round-Robin Load Balancing (Production-like)
+**Use Case**: Even load distribution, high availability
+**Setup**: 3 API instances + nginx round-robin load balancer
+**Behavior**: Each request goes to next instance in rotation
+**Verification**: Watermark changes between API-1/2/3
+
+### 3. Sticky Sessions (Session Affinity)
+**Use Case**: Session-dependent workloads, cache warming
+**Setup**: 3 API instances + nginx with ip_hash
+**Behavior**: Same client IP always routes to same instance
+**Verification**: Watermark stays on same instance
+
+**Quick Start**: Run `scripts/start-api-instances.sh` then either `scripts/start-nginx.sh` (round-robin) or `scripts/start-nginx-sticky.sh` (sticky)
+
 ### Restore Packages
 ```bash
 dotnet restore
@@ -236,9 +367,15 @@ Use SQLite browser to inspect `Data/searchDB.db` after indexing.
 - **Cross-platform**: Uses `Shared/Paths.cs` for automatic platform detection
 
 ### Default Ports & Configuration
-- **SearchAPI**: `http://localhost:5137` (REST API endpoints)
+- **SearchAPI**: `http://localhost:5137` (REST API endpoints - direct access)
+  - **API Instance 1**: `http://localhost:5137` (INSTANCE_ID=API-1)
+  - **API Instance 2**: `http://localhost:5138` (INSTANCE_ID=API-2)
+  - **API Instance 3**: `http://localhost:5139` (INSTANCE_ID=API-3)
+- **nginx Load Balancer**: `http://localhost:8080` (X-Scale - routes to API instances)
 - **SearchWebApp**: `http://localhost:5000` or `https://localhost:5001` (Blazor Server UI)
 - **Database**: SQLite file-based (no server required)
+
+**Note**: Clients (ConsoleSearch and SearchWebApp) connect to nginx load balancer (port 8080) when using X-Scale setup, or directly to SearchAPI (port 5137) for single-instance mode.
 
 ### Search Result Ordering Logic
 **Regular Search** (SQL-based in DatabaseSqlite.cs):
@@ -424,6 +561,10 @@ The `assignments.md` file contains:
 - `SearchWebApp/wwwroot/css/claude-theme.css` - Dark theme styling at SearchWebApp:1
 - `SearchWebApp/Shared/MainLayout.razor` - App layout with collapsible sidebar at SearchWebApp:1
 - `Shared/Paths.cs` - Cross-platform database path configuration at Shared:7
+- `nginx/nginx.conf` - Round-robin load balancer configuration
+- `nginx/nginx-sticky.conf` - Sticky sessions load balancer configuration
+- `scripts/` - Deployment automation (start-api-instances.sh, start-nginx.sh, etc.)
+- `documentation/` - Module implementation history and guides
 
 ### Search Algorithm Details
 The system implements a basic TF (term frequency) scoring model where each document's relevance score is calculated as the percentage of query terms found within it. The inverted index allows efficient lookup of documents containing specific terms, with results ranked by descending relevance score and limited by the configurable result limit (default: 20).
@@ -473,6 +614,36 @@ The search console (`ConsoleSearch/App.cs`) provides an interactive menu system 
 - **Problem**: "Database file not found" errors
 - **Solution**: Check that `Data/searchDB.db` exists after running indexer
 
+**nginx Won't Start**
+- **Problem**: `nginx: command not found` or `nginx: [emerg] bind() to 0.0.0.0:8080 failed`
+- **Solution**: Install nginx with `brew install nginx` (macOS) or check if port 8080 is already in use
+
+**Load Balancer Not Distributing Requests**
+- **Problem**: All requests go to same API instance (e.g., always shows "Instance: API-1")
+- **Solution**:
+  - Verify all 3 API instances are running: `ps aux | grep dotnet.*SearchAPI`
+  - Check nginx error logs: `tail -f nginx/logs/error.log`
+  - Restart nginx: `scripts/stop-all.sh && scripts/start-nginx.sh`
+  - **Note**: With sticky sessions (`start-nginx-sticky.sh`), this is expected behavior!
+
+**API Instance Won't Start - Port Already in Use**
+- **Problem**: `Address already in use` when starting multiple API instances
+- **Solution**: Kill existing dotnet processes: `pkill -f "dotnet.*SearchAPI"` then restart with scripts
+
+**Clients Still Connecting to Single API Instance**
+- **Problem**: After setting up load balancer, clients still connect directly to port 5137
+- **Solution**: Check configuration:
+  - **ConsoleSearch**: Environment variable `API_BASE_URL` (default: http://localhost:8080)
+  - **SearchWebApp**: `appsettings.json` → `"ApiSettings:BaseUrl": "http://localhost:8080"`
+  - If you want single-instance mode, set `API_BASE_URL=http://localhost:5137` or update appsettings.json
+
+**Instance ID Not Showing in UI**
+- **Problem**: Watermark or console output doesn't show instance ID
+- **Solution**:
+  - Check environment variables are set in `launchSettings.json` (INSTANCE_ID=API-1/2/3)
+  - Restart API instances after configuration changes
+  - Verify SearchController includes instanceId in JSON response
+
 ### Debug Information
 
 **Database Inspection**:
@@ -484,8 +655,16 @@ The search console (`ConsoleSearch/App.cs`) provides an interactive menu system 
 
 **API Endpoint Testing**:
 ```bash
-# Test API directly in browser:
-http://localhost:5137/api/search?query=test
+# Test API directly:
+http://localhost:5137/api/search?query=test  # Single instance
+http://localhost:8080/api/search?query=test  # Load balancer
+
+# Test health endpoints:
+http://localhost:5137/api/search/health  # Single instance health
+http://localhost:8080/health  # nginx health
+http://localhost:8080/api/search/health  # Backend health via load balancer
+
+# Test pattern search:
 http://localhost:5137/api/search/pattern?pattern=t*st
 ```
 

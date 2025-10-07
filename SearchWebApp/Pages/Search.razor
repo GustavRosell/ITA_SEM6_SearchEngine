@@ -3,6 +3,16 @@
 @using System.Text.Json
 @inject HttpClient Http
 @inject IJSRuntime JSRuntime
+@inject IConfiguration Configuration
+
+<!-- Instance Watermark for X-Scale Load Balancing Visualization -->
+@if (!string.IsNullOrEmpty(currentInstanceId))
+{
+    <div class="instance-watermark">
+        <span class="watermark-label">Instance:</span>
+        <span class="watermark-id">@currentInstanceId</span>
+    </div>
+}
 
 <div class="content-wrapper">
     <!-- Search Section -->
@@ -267,20 +277,21 @@
     private bool isLoading = false;
     private string errorMessage = "";
     private string lastSearchQuery = "";
-    
+    private string currentInstanceId = "";
+
     // Search options
     private bool caseSensitive = false;
     private bool includeTimestamps = true;
     private bool patternSearch = false;
     private bool compactView = false;
-    
+
     // Expandable items tracking
     private Dictionary<string, bool> expandedItems = new();
-    
+
     // Result limit
     private string resultLimitOption = "20";
     private int customLimit = 50;
-    
+
     private int ResultLimit => resultLimitOption == "custom" ? customLimit : int.Parse(resultLimitOption);
 
     // Results
@@ -307,7 +318,11 @@
         
         try
         {
-            var baseUrl = "http://localhost:5137/api/search";
+            // Read API base URL from configuration
+            // Default: http://localhost:8080 (load balancer)
+            // Can be overridden in appsettings.json: "ApiSettings:BaseUrl"
+            var apiBaseUrl = Configuration["ApiSettings:BaseUrl"] ?? "http://localhost:8080";
+            var baseUrl = $"{apiBaseUrl}/api/search";
             
             if (patternSearch)
             {
@@ -318,7 +333,9 @@
                 {
                     var json = await patternResponse.Content.ReadAsStringAsync();
                     var apiResponse = JsonSerializer.Deserialize<PatternSearchResponse>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                    
+
+                    currentInstanceId = apiResponse?.InstanceId ?? "";
+
                     patternResults = apiResponse?.Hits?.Select(hit => new PatternResult
                     {
                         Document = new DocumentInfo
@@ -364,7 +381,9 @@
                 {
                     var json = await response.Content.ReadAsStringAsync();
                     var apiResponse = JsonSerializer.Deserialize<ApiSearchResponse>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                    
+
+                    currentInstanceId = apiResponse?.InstanceId ?? "";
+
                     searchResults = new SearchResult
                     {
                         Query = apiResponse?.Query ?? Array.Empty<string>(),
@@ -492,6 +511,7 @@
     // API response models (same as original)
     public class ApiSearchResponse
     {
+        public string InstanceId { get; set; } = "";
         public string[] Query { get; set; } = Array.Empty<string>();
         public int TotalDocuments { get; set; }
         public int ReturnedDocuments { get; set; }
@@ -512,6 +532,7 @@
 
     public class PatternSearchResponse
     {
+        public string InstanceId { get; set; } = "";
         public string Pattern { get; set; } = "";
         public List<PatternHit> Hits { get; set; } = new();
         public int TotalDocuments { get; set; }

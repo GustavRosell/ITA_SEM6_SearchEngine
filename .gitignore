@@ -402,4 +402,7 @@ ASALocalRun/
 .mfractor/
 
 # Local History for Visual Studio
-.localhistory/\"Data/searchDB.db\" 
+.localhistory/\"Data/searchDB.db\"
+
+# nginx load balancer logs (X-Scale architecture)
+nginx/logs/ 

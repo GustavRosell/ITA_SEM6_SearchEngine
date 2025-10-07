@@ -18,7 +18,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+// HTTPS redirection removed for local development and load balancer compatibility
 
 app.UseStaticFiles();
 

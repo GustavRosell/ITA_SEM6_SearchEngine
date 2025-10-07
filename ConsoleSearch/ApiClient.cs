@@ -11,6 +11,7 @@ namespace ConsoleSearch
     // Simple DTOs for API responses - no dependency on SearchAPI models
     public class SearchResult
     {
+        public string InstanceId { get; set; }
         public string[] Query { get; set; }
         public int TotalDocuments { get; set; }
         public int ReturnedDocuments { get; set; }
@@ -21,8 +22,9 @@ namespace ConsoleSearch
         public List<string> Ignored { get; set; }
         public TimeSpan TimeUsed { get; set; }
 
-        public SearchResult(string[] query, int totalDocuments, int returnedDocuments, int totalHits, int returnedHits, List<DocumentHit> documents, List<string> ignored, TimeSpan timeUsed)
+        public SearchResult(string instanceId, string[] query, int totalDocuments, int returnedDocuments, int totalHits, int returnedHits, List<DocumentHit> documents, List<string> ignored, TimeSpan timeUsed)
         {
+            InstanceId = instanceId;
             Query = query;
             TotalDocuments = totalDocuments;
             ReturnedDocuments = returnedDocuments;
@@ -50,6 +52,7 @@ namespace ConsoleSearch
 
     public class PatternSearchResult
     {
+        public string InstanceId { get; set; }
         public List<PatternDocumentHit> Hits { get; set; }
         public int TotalDocuments { get; set; }
         public int ReturnedDocuments { get; set; }
@@ -57,9 +60,10 @@ namespace ConsoleSearch
         public int TotalHits { get; set; }
         public int ReturnedHits { get; set; }
         public double TimeUsedMs { get; set; }
-        
-        public PatternSearchResult(List<PatternDocumentHit> hits, int totalDocuments, int returnedDocuments, bool isTruncated, int totalHits, int returnedHits, double timeUsedMs)
+
+        public PatternSearchResult(string instanceId, List<PatternDocumentHit> hits, int totalDocuments, int returnedDocuments, bool isTruncated, int totalHits, int returnedHits, double timeUsedMs)
         {
+            InstanceId = instanceId;
             Hits = hits;
             TotalDocuments = totalDocuments;
             ReturnedDocuments = returnedDocuments;
@@ -85,11 +89,17 @@ namespace ConsoleSearch
     public class ApiClient
     {
         private readonly HttpClient _httpClient;
-        private const string BASE_URL = "http://localhost:5137/api/search";
+        private readonly string _baseUrl;
 
         public ApiClient()
         {
             _httpClient = new HttpClient();
+
+            // Read API_BASE_URL from environment variable
+            // Default: http://localhost:8080 (load balancer)
+            // Override: API_BASE_URL=http://localhost:5137 (single instance)
+            var apiBaseUrl = Environment.GetEnvironmentVariable("API_BASE_URL") ?? "http://localhost:8080";
+            _baseUrl = $"{apiBaseUrl}/api/search";
         }
 
         public async Task<SearchResult> SearchAsync(string[] query, bool caseSensitive = true, int? limit = 20, bool includeTimestamps = true)
@@ -97,7 +107,7 @@ namespace ConsoleSearch
             try
             {
                 var queryString = string.Join(" ", query);
-                var url = $"{BASE_URL}?query={Uri.EscapeDataString(queryString)}&caseSensitive={caseSensitive}&limit={limit}&includeTimestamps={includeTimestamps}";
+                var url = $"{_baseUrl}?query={Uri.EscapeDataString(queryString)}&caseSensitive={caseSensitive}&limit={limit}&includeTimestamps={includeTimestamps}";
                 
                 var response = await _httpClient.GetAsync(url);
                 response.EnsureSuccessStatusCode();
@@ -118,7 +128,7 @@ namespace ConsoleSearch
         {
             try
             {
-                var url = $"{BASE_URL}/pattern?pattern={Uri.EscapeDataString(pattern)}&caseSensitive={caseSensitive}&limit={limit}";
+                var url = $"{_baseUrl}/pattern?pattern={Uri.EscapeDataString(pattern)}&caseSensitive={caseSensitive}&limit={limit}";
                 
                 var response = await _httpClient.GetAsync(url);
                 response.EnsureSuccessStatusCode();
@@ -150,6 +160,7 @@ namespace ConsoleSearch
                 documentHits.Add(new DocumentHit(document, hit.NoOfHits, hit.Missing));
             }
             return new SearchResult(
+                api.InstanceId ?? "Unknown",
                 api.Query,
                 api.TotalDocuments,
                 api.ReturnedDocuments,
@@ -163,7 +174,7 @@ namespace ConsoleSearch
         private PatternSearchResult ConvertToPatternSearchResult(ApiPatternSearchResponse apiResponse)
         {
             var hits = new List<PatternDocumentHit>();
-            
+
             foreach (var hit in apiResponse.Hits)
             {
                 var document = new Shared.Model.BEDocument
@@ -173,11 +184,12 @@ namespace ConsoleSearch
                     mIdxTime = hit.Document.IndexTime,
                     mCreationTime = hit.Document.CreationTime
                 };
-                
+
                 hits.Add(new PatternDocumentHit(document, hit.MatchingWords));
             }
-            
+
             return new PatternSearchResult(
+                apiResponse.InstanceId ?? "Unknown",
                 hits,
                 apiResponse.TotalDocuments,
                 apiResponse.ReturnedDocuments,
@@ -191,6 +203,7 @@ namespace ConsoleSearch
     // API Response models
     public class ApiSearchResponse
     {
+        public string InstanceId { get; set; }
         public string[] Query { get; set; }
         public int TotalDocuments { get; set; }
         public int ReturnedDocuments { get; set; }
@@ -219,6 +232,7 @@ namespace ConsoleSearch
 
     public class ApiPatternSearchResponse
     {
+        public string InstanceId { get; set; }
         public string Pattern { get; set; }
         public int TotalDocuments { get; set; }
         public int ReturnedDocuments { get; set; }
