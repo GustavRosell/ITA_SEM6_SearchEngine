@@ -33,15 +33,18 @@ namespace SearchAPI.Data
         /// Initialize SQLite connection to inverted index database
         /// Database must already exist (created by indexer application)
         /// </summary>
-        public DatabaseSqlite()
+        /// <param name="databasePath">Optional custom database path. If null, uses default cross-platform path.</param>
+        public DatabaseSqlite(string? databasePath = null)
         {
             var connectionStringBuilder = new SqliteConnectionStringBuilder();
-            
-            // Use cross-platform database path (auto-detects Windows/macOS/Linux)
-            connectionStringBuilder.DataSource = Paths.DATABASE;
+
+            // Use provided path or fall back to cross-platform default
+            connectionStringBuilder.DataSource = databasePath ?? Paths.DATABASE;
 
             _connection = new SqliteConnection(connectionStringBuilder.ConnectionString);
             _connection.Open();
+
+            Console.WriteLine($"[SearchAPI] Connected to database: {connectionStringBuilder.DataSource}");
         }
 
         /// <summary>

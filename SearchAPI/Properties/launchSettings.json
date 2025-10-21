@@ -8,7 +8,8 @@
       "applicationUrl": "http://localhost:5137",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "INSTANCE_ID": "API-1"
+        "INSTANCE_ID": "API-1",
+        "DATABASE_PATH": "C:\\Users\\Gusta\\OneDrive\\Dokumenter\\CodingProjects\\School\\ITA_SEM6_SearchEngine\\Data\\searchDB1.db"
       }
     },
     "http2": {
@@ -18,7 +19,8 @@
       "applicationUrl": "http://localhost:5138",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "INSTANCE_ID": "API-2"
+        "INSTANCE_ID": "API-2",
+        "DATABASE_PATH": "C:\\Users\\Gusta\\OneDrive\\Dokumenter\\CodingProjects\\School\\ITA_SEM6_SearchEngine\\Data\\searchDB2.db"
       }
     },
     "http3": {
@@ -28,7 +30,8 @@
       "applicationUrl": "http://localhost:5139",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "INSTANCE_ID": "API-3"
+        "INSTANCE_ID": "API-3",
+        "DATABASE_PATH": "C:\\Users\\Gusta\\OneDrive\\Dokumenter\\CodingProjects\\School\\ITA_SEM6_SearchEngine\\Data\\searchDB3.db"
       }
     }
   }

@@ -9,13 +9,13 @@ public class Config
     // All .txt files in that folder (and subfolders) will be indexed
     public static string GetFolder(string dataset)
     {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) 
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
             return dataset.ToLower() switch
             {
-                "small" => @"C:\Users\Gusta\OneDrive\Dokumenter\GitHub\SearchEngine-main\Data\seData copy\small",
-                "medium" => @"C:\Users\Gusta\OneDrive\Dokumenter\GitHub\SearchEngine-main\Data\seData copy\medium",
-                "large" => @"C:\Users\Gusta\OneDrive\Dokumenter\GitHub\SearchEngine-main\Data\seData copy\large",
+                "small" => @"C:\Users\Gusta\OneDrive\Dokumenter\CodingProjects\School\ITA_SEM6_SearchEngine\Data\seData copy\small",
+                "medium" => @"C:\Users\Gusta\OneDrive\Dokumenter\CodingProjects\School\ITA_SEM6_SearchEngine\Data\seData copy\medium",
+                "large" => @"C:\Users\Gusta\OneDrive\Dokumenter\CodingProjects\School\ITA_SEM6_SearchEngine\Data\seData copy\large",
                 _ => throw new ArgumentException($"Invalid dataset '{dataset}'. Valid options: small, medium, large")
             };
         }

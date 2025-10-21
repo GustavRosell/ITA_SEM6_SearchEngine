@@ -25,7 +25,11 @@
       "Read(/C:\\Users\\Gusta\\OneDrive\\Dokumenter\\GitHub\\SearchEngine-main\\SearchAPI\\Data/**)",
       "Read(/C:\\Users\\Gusta\\OneDrive\\Dokumenter\\GitHub\\SearchEngine-main\\SearchAPI\\Data/**)",
       "Bash(chmod:*)",
-      "Bash(awk:*)"
+      "Bash(awk:*)",
+      "Read(//c/Users/Gusta/OneDrive/Dokumenter/GitHub/SearchEngine-main/**)",
+      "Read(//c/Users/Gusta/OneDrive/Dokumenter/GitHub/**)",
+      "Read(//c/Users/Gusta/OneDrive/Dokumenter/**)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []

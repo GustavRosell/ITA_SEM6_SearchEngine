@@ -405,4 +405,10 @@ ASALocalRun/
 .localhistory/\"Data/searchDB.db\"
 
 # nginx load balancer logs (X-Scale architecture)
-nginx/logs/ 
+nginx/logs/
+
+# Application logs (Z-Scale testing and debugging)
+logs/
+
+# Teacher's reference implementation (Module 7 - Z-Scale)
+SearchEngine-y-scale-data/ 

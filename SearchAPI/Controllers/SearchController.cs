@@ -23,13 +23,14 @@ namespace SearchAPI.Controllers
         private readonly string _instanceId;
 
         /// <summary>
-        /// Initialize SearchController with database dependency
+        /// Initialize SearchController with database dependency injection
         /// Uses SQLite database with inverted index for fast document retrieval
-        /// Reads INSTANCE_ID from environment variable for X-Scale load balancing identification
+        /// Reads INSTANCE_ID from environment variable for X-Scale/Z-Scale identification
+        /// Database path configured via environment variable DATABASE_PATH (for Z-Scale partitioning)
         /// </summary>
-        public SearchController()
+        public SearchController(IDatabase database)
         {
-            _searchLogic = new SearchLogic(new DatabaseSqlite());
+            _searchLogic = new SearchLogic(database);
             _instanceId = Environment.GetEnvironmentVariable("INSTANCE_ID") ?? "API-Default";
         }
 

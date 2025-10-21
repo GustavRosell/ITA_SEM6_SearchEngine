@@ -10,7 +10,7 @@ namespace Shared
             {
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
-                    return @"C:\Users\Gusta\OneDrive\Dokumenter\GitHub\SearchEngine-main\Data\searchDB.db";
+                    return @"C:\Users\Gusta\OneDrive\Dokumenter\CodingProjects\School\ITA_SEM6_SearchEngine\Data\searchDB.db";
                 }
                 else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
                 {

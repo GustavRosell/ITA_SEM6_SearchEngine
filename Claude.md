@@ -14,19 +14,20 @@ This is a **Proof of Concept (PoC) Search Engine** for IT-Architecture semester 
 ## Architecture & Components
 
 ### Solution Structure (AKF Scale Cube Architecture)
-- **`indexer`** - Console application that crawls and indexes documents
+- **`indexer`** - Console application that crawls and indexes documents (now with partition support)
 - **`ConsoleSearch`** - Console application providing interactive search interface
-- **`SearchAPI`** - ASP.NET Core Web API providing RESTful search endpoints (Y-Scale component, X-Scale ready)
+- **`SearchAPI`** - ASP.NET Core Web API providing RESTful search endpoints (Y-Scale component, X-Scale + Z-Scale ready)
+- **`Coordinator`** - ASP.NET Core Web API aggregating results from data partitions (Z-Scale component) ✅ **NEW**
 - **`SearchWebApp`** - Blazor Server web application with Claude.ai-inspired UI
 - **`Shared`** - Class library containing common models and configuration
-- **`nginx/`** - Load balancer configurations (round-robin + sticky sessions) ✅ **NEW**
-- **`scripts/`** - Automated deployment scripts for multi-instance setup ✅ **NEW**
-- **`documentation/`** - Module-by-module implementation documentation ✅ **NEW**
+- **`nginx/`** - Load balancer configurations (round-robin + sticky sessions)
+- **`scripts/`** - Automated deployment scripts (X-Scale + Z-Scale)
+- **`documentation/`** - Module-by-module implementation documentation
 
 **Scaling Dimensions Implemented:**
-- ✅ **Y-Axis (Functional Decomposition)**: Separate API service for search logic
-- ✅ **X-Axis (Horizontal Duplication)**: Multiple identical API instances with nginx load balancing
-- 🔄 **Z-Axis (Data Partitioning)**: Planned for Module 7
+- ✅ **Y-Axis (Functional Decomposition)**: Separate API service for search logic (Module 3)
+- ✅ **X-Axis (Horizontal Duplication)**: Multiple identical API instances with nginx load balancing (Module 6)
+- ✅ **Z-Axis (Data Partitioning)**: Coordinator pattern with multiple database partitions (Module 7)
 
 ### Technology Stack
 - **.NET 9.0** C# applications (console, API, and web)
@@ -58,16 +59,30 @@ Occurrence: docId, termId (many-to-many relationship)
 - Word extraction separators: `" \\\n\t\"$'!,?;.:-_**+=)([]{}<>/@&%€#"`
 - Creates inverted index: word → documents containing it
 - Platform-specific database paths via `RuntimeInformation`
+- **Z-Scale Support (Module 7)**: Accepts partition parameters for distributed indexing
 
 **Indexing Workflow**:
-1. Prompts user to select dataset size (small/medium/large)
-2. Recursively crawls configured directory for `.txt` files
-3. Extracts and normalizes words using defined separators
-4. Builds inverted index in SQLite database
-5. Outputs comprehensive statistics including:
+1. Prompts user to select dataset size (small/medium/large) OR accepts via command-line
+2. **Optional**: Accept partition parameters (`<dataset> <partition_number> <total_partitions>`)
+3. Recursively crawls configured directory for `.txt` files
+4. **Z-Scale**: If partitioning, distributes subdirectories using modulo algorithm
+5. Extracts and normalizes words using defined separators
+6. Builds inverted index in SQLite database (single or partitioned)
+7. Outputs comprehensive statistics including:
    - Total documents indexed
    - Total word occurrences
    - Top N most frequent words (user-configurable)
+
+**Usage Examples**:
+```bash
+# Standard indexing (all documents to searchDB.db)
+dotnet run medium
+
+# Partitioned indexing (Z-Scale)
+dotnet run medium 1 3  # Partition 1 of 3 → searchDB1.db
+dotnet run medium 2 3  # Partition 2 of 3 → searchDB2.db
+dotnet run medium 3 3  # Partition 3 of 3 → searchDB3.db
+```
 
 ### 2. Search Engine (`ConsoleSearch` project)
 **Entry Point**: `Program.cs` → `App.cs`
@@ -129,7 +144,62 @@ score = (number_of_matching_terms / total_query_terms)
 - Error handling with user-friendly messages
 - Proper HTTP client configuration
 
-### 5. Shared Library (`Shared` project)
+### 5. Coordinator Service (`Coordinator` project) ✅ **NEW - Z-SCALE COMPONENT (Module 7)**
+**Entry Point**: `Program.cs` → ASP.NET Core Web API
+- **Coordinator Service**: `Services/CoordinatorService.cs` - Parallel query and result aggregation logic
+- **Coordinator Controller**: `Controllers/CoordinatorController.cs` - API endpoints for distributed search
+- **Configuration**: `appsettings.json` - SearchAPI instances URLs
+
+**Coordinator Pattern (Z-Scale Data Partitioning)**:
+```
+Client → Coordinator (5153)
+            ↓
+   ┌────────┼────────┐
+   ↓        ↓        ↓
+API-1    API-2    API-3
+(DB1)    (DB2)    (DB3)
+```
+
+**Key Features**:
+- **Parallel queries**: Sends simultaneous requests to all SearchAPI instances
+- **Result merging**: Combines DocumentHits from all data partitions
+- **Relevance sorting**: Re-sorts merged results by NoOfHits descending
+- **Graceful degradation**: Continues if one partition fails
+- **Timing aggregation**: Sums response times from all partitions
+
+**API Endpoints**:
+- `GET /api/search?query={query}&caseSensitive={bool}&limit={int}` - Standard search across all partitions
+- `GET /api/search/pattern?pattern={pattern}&caseSensitive={bool}&limit={int}` - Pattern search across all partitions
+- `GET /api/search/ping` - Health check returning "Coordinator"
+
+**Configuration** (`appsettings.json`):
+```json
+{
+  "SearchAPISettings": {
+    "Instances": [
+      "http://localhost:5137",
+      "http://localhost:5138",
+      "http://localhost:5139"
+    ]
+  }
+}
+```
+
+**Workflow**:
+1. Receive search request from client
+2. Create parallel HTTP GET requests to ALL configured SearchAPI instances
+3. Wait for all responses using `Task.WhenAll`
+4. Merge all `DocumentHits` lists
+5. Sort combined results by relevance score
+6. Return unified `SearchResult` with aggregated metadata
+
+**Z-Scale Benefits**:
+- ✅ Horizontal data scalability - add more partitions as dataset grows
+- ✅ Parallel processing - all partitions searched simultaneously
+- ✅ Complete results - aggregates data from all partitions
+- ✅ Independent scaling - each partition can scale independently
+
+### 6. Shared Library (`Shared` project)
 - **`BEDocument.cs`**: Document business entity model
 - **`Paths.cs`**: Cross-platform database path configuration (auto-detects Windows/macOS/Linux)
 - **`IDatabase.cs`**: Database interface (used by indexer, ConsoleSearch, and SearchAPI)
@@ -184,13 +254,28 @@ dotnet build SearchEngine.sln
 ### Run Projects
 
 #### 1. Index Documents (Required First Step)
+
+**Standard Indexing (Single Database):**
 ```bash
 # Run indexer with dataset selection (crawls and indexes documents)
 cd indexer
 dotnet run small     # Index small dataset (13 emails)
-dotnet run medium    # Index medium dataset (~5,000 emails) 
+dotnet run medium    # Index medium dataset (~5,000 emails)
 dotnet run large     # Index large dataset (~50,000 emails)
 # Alternative: dotnet run (will prompt for dataset selection)
+```
+
+**Partitioned Indexing (Z-Scale - Module 7):** ✅ **NEW**
+```bash
+# Automated partition creation using script (recommended)
+./scripts/partition-dataset.sh medium 3
+# Creates: searchDB1.db, searchDB2.db, searchDB3.db
+
+# Manual partitioning (advanced)
+cd indexer
+dotnet run medium 1 3  # Partition 1 of 3
+dotnet run medium 2 3  # Partition 2 of 3
+dotnet run medium 3 3  # Partition 3 of 3
 ```
 
 #### 2. Search Applications (Choose One or Both)
@@ -323,6 +408,132 @@ cd ConsoleSearch && dotnet run
 - ✅ **Zero-downtime deployment**: Update instances one at a time
 - ✅ **Real-world pattern**: Industry-standard load balancing with nginx
 - ✅ **Flexible configuration**: Easy switch between single/multi-instance modes
+
+#### 5. Z-Scale Data Partitioning (AKF Scale Cube - Data Sharding) ✅ **NEW**
+Demonstrates data partitioning by distributing documents across multiple databases and aggregating results through a Coordinator service.
+
+**Prerequisites:**
+```bash
+# Ensure all projects are built
+dotnet build SearchEngine.sln
+```
+
+**Quick Start with Scripts:**
+```bash
+# Step 1: Partition the dataset across 3 databases
+cd indexer
+scripts/partition-dataset.sh small 3
+# OR scripts/partition-dataset.sh medium 3
+# OR scripts/partition-dataset.sh large 3
+
+# Step 2: Start all Z-Scale services (3 SearchAPI instances + Coordinator)
+scripts/start-z-scale.sh
+
+# Step 3: Test Coordinator aggregation
+# The Coordinator runs on port 5050 and queries all 3 partitions
+curl "http://localhost:5050/api/coordinator?query=test&limit=20"
+
+# Step 4: Run clients (they can connect to Coordinator or individual APIs)
+# Console Search (connects to Coordinator by setting API_BASE_URL)
+export API_BASE_URL=http://localhost:5050/api/coordinator
+cd ConsoleSearch && dotnet run
+
+# Web App (update appsettings.json to point to Coordinator)
+cd SearchWebApp && dotnet run
+
+# Step 5: Stop all services when done
+scripts/stop-z-scale.sh
+```
+
+**Manual Startup (Alternative):**
+```bash
+# Step 1: Partition dataset manually (creates searchDB1.db, searchDB2.db, searchDB3.db)
+cd indexer
+dotnet run small 1 3  # Partition 1 of 3
+dotnet run small 2 3  # Partition 2 of 3
+dotnet run small 3 3  # Partition 3 of 3
+
+# Step 2: Start SearchAPI instances with different database partitions
+# Terminal 1: API Instance 1 (searchDB1.db, port 5137)
+cd SearchAPI && dotnet run --launch-profile http
+
+# Terminal 2: API Instance 2 (searchDB2.db, port 5138)
+cd SearchAPI && dotnet run --launch-profile http2
+
+# Terminal 3: API Instance 3 (searchDB3.db, port 5139)
+cd SearchAPI && dotnet run --launch-profile http3
+
+# Terminal 4: Coordinator (aggregates results from all 3 APIs)
+cd Coordinator && dotnet run
+# Coordinator will be available at: http://localhost:5050
+
+# Terminal 5: Test aggregation
+curl "http://localhost:5050/api/coordinator?query=energy&limit=20"
+```
+
+**Verifying Z-Scale Data Partitioning:**
+- **Database Verification**: Check `Data/` folder for `searchDB1.db`, `searchDB2.db`, `searchDB3.db`
+- **Partition Distribution**: Each database should contain different subdirectories (modulo-based distribution)
+- **Coordinator Aggregation**:
+  ```bash
+  # Test that Coordinator queries all 3 partitions
+  curl "http://localhost:5050/api/coordinator?query=test"
+  # Response should aggregate results from all 3 databases
+  ```
+- **Direct API Testing**: Query individual partitions to verify data distribution
+  ```bash
+  curl "http://localhost:5137/api/search?query=test"  # Partition 1
+  curl "http://localhost:5138/api/search?query=test"  # Partition 2
+  curl "http://localhost:5139/api/search?query=test"  # Partition 3
+  ```
+
+**Z-Scale Architecture:**
+```
+User Request
+     ↓
+Coordinator (port 5050)
+     ↓ (parallel queries)
+├─→ SearchAPI-1 (port 5137) → searchDB1.db (subdirs: 0, 3, 6, 9, ...)
+├─→ SearchAPI-2 (port 5138) → searchDB2.db (subdirs: 1, 4, 7, 10, ...)
+└─→ SearchAPI-3 (port 5139) → searchDB3.db (subdirs: 2, 5, 8, 11, ...)
+     ↓
+Merge & Sort Results
+     ↓
+Return Aggregated Results
+```
+
+**Deployment Modes:**
+1. **Single Database** (Development):
+   ```bash
+   # Traditional single database approach
+   cd indexer && dotnet run small
+   cd SearchAPI && dotnet run
+   ```
+
+2. **Z-Scale Partitioned** (Production-like):
+   ```bash
+   # Distributed data across 3 partitions with Coordinator
+   scripts/partition-dataset.sh small 3
+   scripts/start-z-scale.sh
+   # Clients use Coordinator: http://localhost:5050/api/coordinator
+   ```
+
+3. **Combined X+Z Scale** (Full AKF Cube):
+   ```bash
+   # Data partitioning + horizontal scaling + load balancing
+   scripts/partition-dataset.sh medium 3
+   scripts/start-z-scale.sh  # Starts 3 SearchAPI instances + Coordinator
+   scripts/start-nginx.sh     # Load balancer in front of Coordinator
+   # Maximum scalability: Data sharded, horizontally scaled, load balanced
+   ```
+
+**Architecture Benefits:**
+- ✅ **Data scalability**: Distribute large datasets across multiple databases
+- ✅ **Parallel query execution**: Query all partitions simultaneously using Task.WhenAll
+- ✅ **Partition tolerance**: If one partition fails, others still return results
+- ✅ **Flexible partitioning**: Easy to add more partitions (just update total count)
+- ✅ **Complete AKF implementation**: Y-Scale (API service) + X-Scale (horizontal) + Z-Scale (data sharding)
+- ✅ **Future-ready**: Prepares for Kubernetes orchestration (Module 8)
 
 ---
 
