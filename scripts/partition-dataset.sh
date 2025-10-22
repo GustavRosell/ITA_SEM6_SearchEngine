@@ -2,24 +2,56 @@
 # partition-dataset.sh - Automates database partitioning for Z-Scale architecture
 # Part of IT-Arkitektur Module 7: Data Partitioning (Z-Scale)
 #
-# Usage: ./scripts/partition-dataset.sh <dataset> <num_partitions>
+# Usage:
+#   Interactive: ./scripts/partition-dataset.sh
+#   With args:   ./scripts/partition-dataset.sh <dataset> <num_partitions>
 # Example: ./scripts/partition-dataset.sh medium 3
 #
 # This script runs the indexer multiple times, each time creating a separate
 # database partition containing a subset of the documents.
 
-# Check if correct number of arguments provided
-if [ "$#" -ne 2 ]; then
-    echo "Usage: $0 <dataset> <num_partitions>"
+# Interactive mode if no arguments provided
+if [ "$#" -eq 0 ]; then
+    echo "========================================"
+    echo "Z-Scale Database Partitioning (Interactive)"
+    echo "========================================"
+    echo ""
+    echo "Select dataset size:"
+    echo "  1) small   (13 emails in 1 folder)"
+    echo "  2) medium  (~5,000 emails in ~20 mailboxes)"
+    echo "  3) large   (~50,000 emails for 15 users)"
+    echo ""
+    read -p "Choice [1-3]: " dataset_choice
+
+    case $dataset_choice in
+        1) DATASET="small" ;;
+        2) DATASET="medium" ;;
+        3) DATASET="large" ;;
+        *)
+            echo "Error: Invalid choice. Please select 1, 2, or 3."
+            exit 1
+            ;;
+    esac
+
+    echo ""
+    read -p "Number of partitions [default: 3]: " NUM_PARTITIONS
+    NUM_PARTITIONS=${NUM_PARTITIONS:-3}
+    echo ""
+elif [ "$#" -eq 2 ]; then
+    # Command-line mode (backward compatibility)
+    DATASET=$1
+    NUM_PARTITIONS=$2
+else
+    echo "Usage: $0 [dataset] [num_partitions]"
+    echo "  Interactive: $0"
+    echo "  With args:   $0 <dataset> <num_partitions>"
+    echo ""
     echo "  dataset: small, medium, or large"
     echo "  num_partitions: number of database partitions to create (e.g., 2, 3, 4)"
     echo ""
     echo "Example: $0 medium 3"
     exit 1
 fi
-
-DATASET=$1
-NUM_PARTITIONS=$2
 
 # Validate dataset parameter
 if [[ ! "$DATASET" =~ ^(small|medium|large)$ ]]; then

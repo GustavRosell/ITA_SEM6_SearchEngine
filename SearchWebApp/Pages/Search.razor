@@ -5,8 +5,15 @@
 @inject IJSRuntime JSRuntime
 @inject IConfiguration Configuration
 
-<!-- Instance Watermark for X-Scale Load Balancing Visualization -->
-@if (!string.IsNullOrEmpty(currentInstanceId))
+<!-- Deployment Mode Watermark (Z-Scale or X-Scale Visualization) -->
+@if (isZScaleMode)
+{
+    <div class="instance-watermark mode-z-scale">
+        <span class="watermark-label">Mode:</span>
+        <span class="watermark-id">Z-Scale (3 partitions)</span>
+    </div>
+}
+else if (!string.IsNullOrEmpty(currentInstanceId))
 {
     <div class="instance-watermark">
         <span class="watermark-label">Instance:</span>
@@ -278,6 +285,7 @@
     private string errorMessage = "";
     private string lastSearchQuery = "";
     private string currentInstanceId = "";
+    private bool isZScaleMode = false;
 
     // Search options
     private bool caseSensitive = false;
@@ -334,7 +342,9 @@
                     var json = await patternResponse.Content.ReadAsStringAsync();
                     var apiResponse = JsonSerializer.Deserialize<PatternSearchResponse>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
+                    // Detect deployment mode: Z-Scale (Coordinator) vs X-Scale/Single (SearchAPI)
                     currentInstanceId = apiResponse?.InstanceId ?? "";
+                    isZScaleMode = string.IsNullOrEmpty(currentInstanceId);
 
                     patternResults = apiResponse?.Hits?.Select(hit => new PatternResult
                     {
@@ -382,7 +392,9 @@
                     var json = await response.Content.ReadAsStringAsync();
                     var apiResponse = JsonSerializer.Deserialize<ApiSearchResponse>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
+                    // Detect deployment mode: Z-Scale (Coordinator) vs X-Scale/Single (SearchAPI)
                     currentInstanceId = apiResponse?.InstanceId ?? "";
+                    isZScaleMode = string.IsNullOrEmpty(currentInstanceId);
 
                     searchResults = new SearchResult
                     {

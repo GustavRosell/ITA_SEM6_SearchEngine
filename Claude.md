@@ -267,9 +267,13 @@ dotnet run large     # Index large dataset (~50,000 emails)
 
 **Partitioned Indexing (Z-Scale - Module 7):** ✅ **NEW**
 ```bash
-# Automated partition creation using script (recommended)
+# Interactive partition creation (recommended)
+./scripts/partition-dataset.sh
+# Will prompt for dataset size and number of partitions
+# Creates: searchDB1.db, searchDB2.db, searchDB3.db, etc.
+
+# OR with command-line arguments
 ./scripts/partition-dataset.sh medium 3
-# Creates: searchDB1.db, searchDB2.db, searchDB3.db
 
 # Manual partitioning (advanced)
 cd indexer
@@ -420,11 +424,10 @@ dotnet build SearchEngine.sln
 
 **Quick Start with Scripts:**
 ```bash
-# Step 1: Partition the dataset across 3 databases
-cd indexer
-scripts/partition-dataset.sh small 3
-# OR scripts/partition-dataset.sh medium 3
-# OR scripts/partition-dataset.sh large 3
+# Step 1: Partition the dataset across 3 databases (interactive)
+scripts/partition-dataset.sh
+# Will prompt for dataset size (small/medium/large) and partition count
+# Creates: searchDB1.db, searchDB2.db, searchDB3.db
 
 # Step 2: Start all Z-Scale services (3 SearchAPI instances + Coordinator)
 scripts/start-z-scale.sh
@@ -472,6 +475,7 @@ curl "http://localhost:5050/api/coordinator?query=energy&limit=20"
 ```
 
 **Verifying Z-Scale Data Partitioning:**
+- **Web App**: Watch the green watermark in top-right corner showing "Mode: Z-Scale (3 partitions)"
 - **Database Verification**: Check `Data/` folder for `searchDB1.db`, `searchDB2.db`, `searchDB3.db`
 - **Partition Distribution**: Each database should contain different subdirectories (modulo-based distribution)
 - **Coordinator Aggregation**:

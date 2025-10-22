@@ -749,3 +749,17 @@ div.nav-scrollable,
   font-weight: 500;
   letter-spacing: 0.3px;
 }
+
+/* Z-Scale mode indicator - green theme */
+.mode-z-scale {
+  background: rgba(24, 24, 27, 0.6);
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.mode-z-scale .watermark-id {
+  color: rgba(34, 197, 94, 0.9);
+}
+
+.mode-z-scale .watermark-label {
+  color: rgba(34, 197, 94, 0.6);
+}
